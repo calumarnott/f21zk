@@ -2,9 +2,9 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-data/raw/
-data/processed/
+# data/raw/
+# data/processed/
 models/checkpoints/
-experiments/
-!data/README.md
-!models/checkpoints/.gitkeep
+# experiments/
+# !data/README.md
+# !models/checkpoints/.gitkeep

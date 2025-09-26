@@ -1,7 +1,8 @@
 from pathlib import Path
 import json, time, torch, torch.nn as nn, torch.optim as optim
+import tqdm
 from .data.dataset import build_loaders
-from .models.mlp import MLP
+from .models.registry import make_model
 
 #TODO: add tqdm progress bars
 
@@ -27,7 +28,12 @@ def train(cfg):
    
     loaders = build_loaders(cfg) # build data loaders
     
-    model = MLP(in_dim=2, hidden=tuple(cfg["model"]["hidden"]), dropout=cfg["model"]["dropout"]) # MLP model
+    # create model from registry
+    model = make_model(cfg["model"]["name"],
+                        in_dim=2,
+                        hidden=tuple(cfg["model"]["hidden"]),
+                        out_dim=1,
+                        dropout=cfg["model"]["dropout"]) # create model from registry
     
     # use GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -48,7 +54,7 @@ def train(cfg):
         model.train()
         train_loss = 0 # training loss
         
-        for X,y in loaders["train"]:
+        for X,y in tqdm(loaders["train"], desc=f"Epoch {epoch+1}/{cfg['train']['epochs']} train"):
             
             X,y = X.to(device), y.to(device)
             
@@ -67,7 +73,7 @@ def train(cfg):
         
         with torch.no_grad():
             
-            for X,y in loaders["val"]:
+            for X,y in tqdm(loaders["val"], desc=f"Epoch {epoch+1}/{cfg['train']['epochs']} val"):
                 
                 X,y = X.to(device), y.to(device)
                 

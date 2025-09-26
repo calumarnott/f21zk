@@ -29,18 +29,9 @@ def build_loaders(cfg):
     s = r_tr + r_val + r_te
     r_tr, r_val, r_te = r_tr/s, r_val/s, r_te/s
     
-    # Determine split sizes
-    n_tr = int(round(n * r_tr)) # number of training samples
-    n_val = int(round(n * r_val)) # number of validation samples
-    n_te = n - n_tr - n_val # number of test samples (remaining) 
-    
+    # Generate dataset splits
     g = torch.Generator().manual_seed(cfg["data"]["seed"]) 
-    train_ds, val_ds, test_ds = random_split(full, [n_tr, n_val, n_te], generator=g)
-    
-    # Create datasets
-    train_ds = TensorDataset(X[:n_tr], y[:n_tr])
-    val_ds   = TensorDataset(X[n_tr:n_tr+n_val], y[n_tr:n_tr+n_val])
-    test_ds  = TensorDataset(X[-n_te:], y[-n_te:])
+    train_ds, val_ds, test_ds = random_split(full, [r_tr, r_val, r_te], generator=g)
     
     # Data loaders -> they handle batching and shuffling
     mk  = lambda ds, bs, sh: DataLoader(ds, batch_size=bs, shuffle=sh)
@@ -49,4 +40,7 @@ def build_loaders(cfg):
     
     return {"train": mk(train_ds, bs, True), 
             "val": mk(val_ds, bs, False), 
-            "test": mk(test_ds, bs, False)}
+            "test": mk(test_ds, bs, False),
+            "sizes": {"train": len(train_ds),
+                        "val": len(val_ds),
+                        "test": len(test_ds)}}

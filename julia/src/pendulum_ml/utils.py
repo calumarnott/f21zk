@@ -66,14 +66,17 @@ def parse_with_config():
         tuple: Configuration dictionary and parsed arguments.
     """
     p = argparse.ArgumentParser()
-    p.add_argument("--config", required=True)
+    p.add_argument("--config", default="configs/pendulum.yaml")
     p.add_argument("--set", nargs="*")           # e.g. train.lr=3e-4 train.epochs=50
     p.add_argument("--exp", default=None)
     
-    args = p.parse_args()
+    args = p.parse_args() # parse command-line arguments
     
-    cfg = apply_overrides(load_cfg(args.config), args.set) # apply command-line overrides
+    # apply command-line overrides
+    cfg = apply_overrides(load_cfg(args.config), args.set) 
     
     if args.exp: cfg["exp"] = args.exp # set experiment name if provided
+    
     seed_all(cfg.get("seed", 0))
+    
     return cfg, args

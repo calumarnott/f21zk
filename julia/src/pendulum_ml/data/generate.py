@@ -3,6 +3,8 @@ import numpy as np, pandas as pd
 from ..dynamics.base import Params, euler_step, rk4_step
 from ..dynamics import pendulum as dyn
 
+# TODO: figure out how this works
+
 def simulate(cfg, out_dir="data/raw/pendulum"):
     """ Simulate a single pendulum trajectory using simple open-loop torque (zero torque).
 
@@ -26,7 +28,9 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
     T = cfg["data"]["horizon"]
     x = np.array([1.0, 0.0], dtype=float)  # initial [theta, theta_dot]
     rows=[]
+    
     for t in range(T):
+        
         u = float(torque_fn(x))
         rows.append({"t": t*p.dt, "theta": x[0], "theta_dot": x[1], "torque": u})
         x = step(x, u, dyn.f, p)

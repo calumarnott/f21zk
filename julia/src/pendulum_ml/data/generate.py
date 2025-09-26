@@ -23,7 +23,8 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
     step = rk4_step if cfg["dynamics"]["integrator"]=="rk4" else euler_step # integrator function
 
     # simple open-loop torque (baseline): zero torque
-    def torque_fn(x): return 0.0
+    def torque_fn(x): 
+        return 0.0
 
     T = cfg["data"]["horizon"]
     x = np.array([1.0, 0.0], dtype=float)  # initial [theta, theta_dot]
@@ -31,10 +32,18 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
     
     for t in range(T):
         
-        u = float(torque_fn(x))
+        u = float(torque_fn(x)) # torque at time t
+        
+        # record time, state, control
         rows.append({"t": t*p.dt, "theta": x[0], "theta_dot": x[1], "torque": u})
+        
+        # step dynamics
         x = step(x, u, dyn.f, p)
-    df = pd.DataFrame(rows)
+        
+    df = pd.DataFrame(rows) # create DataFrame
+    
     path = out / "traj_000.csv"
+    
     df.to_csv(path, index=False)
+    
     return [path]

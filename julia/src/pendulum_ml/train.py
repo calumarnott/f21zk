@@ -4,8 +4,6 @@ import tqdm
 from .data.dataset import build_loaders
 from .models.registry import make_model
 
-#TODO: add tqdm progress bars
-
 def train(cfg):
     """ Train an MLP model based on the provided configuration.
 
@@ -45,8 +43,8 @@ def train(cfg):
     loss = nn.MSELoss()
     best=float("inf")
     
-    
-    mcsv = (out/"metrics.csv").open("w") # open metrics CSV for writing
+    # open metrics CSV for logging
+    mcsv = (out/"metrics.csv").open("w")
     mcsv.write("epoch,train,val\n") # write header
 
     # training loop

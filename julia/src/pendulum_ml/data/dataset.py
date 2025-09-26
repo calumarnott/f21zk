@@ -1,6 +1,6 @@
 from pathlib import Path
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader, random_split
 
 # Add custom dataset class if needed
 
@@ -18,11 +18,24 @@ def build_loaders(cfg):
     root = Path("data/processed")/cfg["system"]
     X = torch.load(root/"X.pt")
     y = torch.load(root/"y.pt")
+    full = TensorDataset(X, y)
     
     n = len(X) # total number of samples
-    n_tr = int(n*cfg["data"]["train_ratio"]) # number of training samples
-    n_val = int(n*cfg["data"]["val_ratio"]) # number of validation samples
-    n_te = n - n_tr - n_val # number of test samples
+    r_tr = cfg["data"]["train_ratio"] # training ratio
+    r_val = cfg["data"].get("val_ratio", 0.1) # validation ratio
+    r_te = cfg["data"].get("test_ratio", 0.1) # test ratio
+    
+    # Normalize ratios to ensure they sum to 1
+    s = r_tr + r_val + r_te
+    r_tr, r_val, r_te = r_tr/s, r_val/s, r_te/s
+    
+    # Determine split sizes
+    n_tr = int(round(n * r_tr)) # number of training samples
+    n_val = int(round(n * r_val)) # number of validation samples
+    n_te = n - n_tr - n_val # number of test samples (remaining) 
+    
+    g = torch.Generator().manual_seed(cfg["data"]["seed"]) 
+    train_ds, val_ds, test_ds = random_split(full, [n_tr, n_val, n_te], generator=g)
     
     # Create datasets
     train_ds = TensorDataset(X[:n_tr], y[:n_tr])

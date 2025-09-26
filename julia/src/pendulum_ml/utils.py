@@ -13,7 +13,7 @@ def seed_all(seed:int=0):
     torch.cuda.manual_seed_all(seed)
 
 def load_cfg(path:str): 
-    """ Load configuration from a YAML file.
+    """ Load configuration from a YAML or JSON file.
 
     Args:
         path (str): Path to the YAML configuration file.
@@ -21,8 +21,13 @@ def load_cfg(path:str):
     Returns:
         dict: Configuration dictionary.
     """
-    with open(path,"r") as f: 
-        return yaml.safe_load(f)
+    text = open(path).read()
+    if path.endswith(".yaml") or path.endswith(".yml"):
+        return yaml.safe_load(text)
+    elif path.endswith(".json"):
+        return json.loads(text)
+    else:
+        raise ValueError("Unsupported config file format. Use .yaml, .yml, or .json")
 
 def apply_overrides(cfg:dict, pairs:list[str]|None):
     """ Apply command-line overrides to a configuration dictionary.
@@ -66,7 +71,7 @@ def parse_with_config():
         tuple: Configuration dictionary and parsed arguments.
     """
     p = argparse.ArgumentParser()
-    p.add_argument("--config", default="configs/pendulum.yaml")
+    p.add_argument("--config", default="configs/default.yaml")
     p.add_argument("--set", nargs="*")           # e.g. train.lr=3e-4 train.epochs=50
     p.add_argument("--exp", default=None)
     

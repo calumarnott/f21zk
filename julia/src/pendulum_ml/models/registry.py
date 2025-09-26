@@ -15,4 +15,12 @@ REGISTRY = {
 }
 
 def make_model(name, **kwargs):
+    """ Create a model instance from the registry.
+
+    Args:
+        name (str): Name of the model architecture to create.
+
+    Returns:
+        nn.Module: Instantiated model.
+    """
     return REGISTRY[name](**kwargs)

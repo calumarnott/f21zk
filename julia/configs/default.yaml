@@ -1,4 +1,4 @@
-seed: 0
+seed: 42
 device: "cpu"          # "cuda:0" if you have GPU
 
 system: "pendulum"
@@ -15,14 +15,17 @@ data:
   horizon: 200
   train_ratio: 0.8
   val_ratio: 0.1
+  test_ratio: 0.1
   standardize: true
 
 model:
   name: "mlp"
+  in_dim: 2
   hidden: [128, 128]
+  out_dim: 1
   dropout: 0.0
 
 train:
-  batch_size: 128
-  epochs: 20
+  batch_size: 32
+  epochs: 30
   lr: 1e-3

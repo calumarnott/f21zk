@@ -1,50 +1,173 @@
 from pathlib import Path
-import json, torch, torch.nn as nn
+from typing import Optional, Dict, Any
+import json
+
+import torch
+import torch.nn as nn
+from tqdm import tqdm
+
 from .data.dataset import build_loaders
 from .models.registry import make_model
 
-def _make_model(cfg):
-    return make_model(cfg["model"]["name"],
-                      in_dim=2,
-                      hidden=tuple(cfg["model"]["hidden"]),
-                      out_dim=1,
-                      dropout=cfg["model"]["dropout"])
 
-def evaluate(cfg, ckpt_path: str, split: str = "test", run: str | None = None):
-    loaders = build_loaders(cfg)
-    sizes = loaders["sizes"]
+@torch.no_grad()
+def evaluate(
+    model: torch.nn.Module,
+    loader: torch.utils.data.DataLoader,
+    device: Optional[torch.device] = None,
+    split: str = "val",
+    save_preds_csv: Optional[Path] = None,
+    show_progress: bool = True,
+) -> Dict[str, Any]:
+    """ Evaluate model on a given data loader.
 
-    model = _make_model(cfg)
-    model.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
+    Args:
+        model (torch.nn.Module): model to evaluate
+        loader (torch.utils.data.DataLoader): data loader
+        device (Optional[torch.device], optional): device to use. Defaults to None.
+        split (str, optional): data split name (for logging). Defaults to "val".
+        save_preds_csv (Optional[Path], optional): if provided, saves predictions to this CSV file. Defaults to None.
+        show_progress (bool, optional): whether to show progress bar. Defaults to True.
+
+    Returns:
+        Dict[str, Any]: dictionary with evaluation metrics (mse, mae, n)
+    """
+    
+    if device is None:
+        device = next(model.parameters()).device
+
     model.eval()
-    loss_mse = nn.MSELoss(reduction="mean")
-    loss_mae = nn.L1Loss(reduction="mean")
+    
+    # Define loss functions
+    mse = nn.MSELoss(reduction="mean")
+    mae = nn.L1Loss(reduction="mean")
 
     total_mse, total_mae, n_total = 0.0, 0.0, 0
-    y_true_all, y_pred_all = [], []
+    ys, yh = [], [] # for saving predictions if needed
 
-    with torch.no_grad():
-        for X, y in loaders[split]:
-            y_hat = model(X)
-            total_mse += loss_mse(y_hat, y).item() * len(X)
-            total_mae += loss_mae(y_hat, y).item() * len(X)
-            n_total += len(X)
-            y_true_all.append(y)
-            y_pred_all.append(y_hat)
+    iterable = loader
+    if show_progress:
+        iterable = tqdm(loader, desc=f"eval[{split}]", leave=False)
 
-    import torch as _t
-    y_true_all = _t.cat(y_true_all).cpu().numpy()
-    y_pred_all = _t.cat(y_pred_all).cpu().numpy()
+    for X, y in iterable:
+        
+        X, y = X.to(device), y.to(device)
+        
+        y_hat = model(X) # prediction
+        
+        bs = X.size(0) # batch size
+        
+        # accumulate metrics
+        total_mse += float(mse(y_hat, y).item()) * bs
+        total_mae += float(mae(y_hat, y).item()) * bs
+        n_total += bs
+        
+        # store predictions if needed
+        if save_preds_csv is not None:
+            ys.append(y.detach().cpu())
+            yh.append(y_hat.detach().cpu())
 
-    mse = total_mse / max(1, n_total)
-    mae = total_mae / max(1, n_total)
+    # final metrics
+    results = {
+        "split": split,
+        "n": n_total,
+        "mse": total_mse / max(1, n_total),
+        "mae": total_mae / max(1, n_total),
+    }
 
-    # Persist results under experiments/<run>/...
-    if run:
-        out = Path("experiments")/run
-        out.mkdir(parents=True, exist_ok=True)
-        (out/f"eval_{split}.json").write_text(json.dumps({"mse": mse, "mae": mae, "n": n_total}, indent=2))
+    # save predictions to CSV if needed
+    if save_preds_csv is not None and ys and yh:
         import pandas as pd
-        pd.DataFrame({"y_true": y_true_all.ravel(), "y_pred": y_pred_all.ravel()}).to_csv(out/f"predictions_{split}.csv", index=False)
+        
+        # concatenate labels and predictions from all batches
+        y_true = torch.cat(ys).numpy().ravel()
+        y_pred = torch.cat(yh).numpy().ravel()
+        
+        # ensure directory exists
+        save_preds_csv.parent.mkdir(parents=True, exist_ok=True)
+        
+        # save to CSV
+        pd.DataFrame({"y_true": y_true, "y_pred": y_pred}).to_csv(save_preds_csv, index=False)
 
-    return {"split": split, "mse": mse, "mae": mae, "n": n_total, "sizes": sizes}
+    return results
+
+
+@torch.no_grad()
+def evaluate_val(
+    cfg: Dict[str, Any],
+    model: torch.nn.Module,
+    loaders: Optional[Dict[str, Any]] = None,
+    show_progress: bool = True,
+) -> Dict[str, Any]:
+    """ Evaluate model on 'val' split.
+
+    Args:
+        cfg (Dict[str, Any]): configuration dictionary
+        model (torch.nn.Module): model to evaluate
+        loaders (Optional[Dict[str, Any]], optional): data loaders. If None, will build from cfg. Defaults to None.
+        show_progress (bool, optional): whether to show progress bar. Defaults to False.
+
+    Returns:
+        Dict[str, Any]: dictionary with evaluation metrics (mse, mae, n)
+    """
+    if loaders is None:
+        loaders = build_loaders(cfg)
+        
+    device = next(model.parameters()).device
+    
+    return evaluate(model, loaders["val"], device=device, split="val", save_preds_csv=None, show_progress=show_progress)
+
+
+@torch.no_grad()
+def evaluate_test(
+    cfg: Dict[str, Any],
+    ckpt_path: str,
+    run: Optional[str] = None,
+    loaders: Optional[Dict[str, Any]] = None,
+    show_progress: bool = False,
+) -> Dict[str, Any]:
+    """ Evaluate a model checkpoint on the 'test' split.
+    If run is provided, saves:
+      - experiments/<run>/eval_test.json
+      - experiments/<run>/predictions_test.csv
+
+    Args:
+        cfg (Dict[str, Any]): configuration dictionary
+        ckpt_path (str): path to model checkpoint
+        run (Optional[str], optional): run name for saving results. Defaults to None.
+        loaders (Optional[Dict[str, Any]], optional): data loaders. If None, will build from cfg. Defaults to None.
+        show_progress (bool, optional): whether to show progress bar. Defaults to False.
+
+    Returns:
+        Dict[str, Any]: dictionary with evaluation metrics (mse, mae, n)
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    cfg["device"] = str(device) # update cfg with device info
+    
+    # load model
+    model = make_model(
+        cfg["model"]["type"],
+        in_dim=int(cfg["model"]["in_dim"]),
+        out_dim=int(cfg["model"]["out_dim"]),
+        hidden=tuple(cfg["model"]["hidden"]),
+        dropout=float(cfg["model"]["dropout"]),
+    ).to(device)
+    state = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state)
+
+    if loaders is None:
+        loaders = build_loaders(cfg)
+
+    # prepare output directory and prediction CSV path if run is specified
+    outdir = Path("experiments") / run if run else None
+    preds_csv = (outdir / "predictions_test.csv") if outdir else None
+    
+    # evaluate on test set
+    res = evaluate(model, loaders["test"], device=device, split="test", save_preds_csv=preds_csv, show_progress=show_progress)
+
+    # save results to JSON if run is specified
+    if outdir:
+        outdir.mkdir(parents=True, exist_ok=True)
+        (outdir / "eval_test.json").write_text(json.dumps(res, indent=2))
+
+    return res

@@ -66,7 +66,7 @@ def parse_with_config():
         tuple: Configuration dictionary and parsed arguments.
     """
     p = argparse.ArgumentParser()
-    p.add_argument("--config", default="configs/pendulum.yaml")
+    p.add_argument("--config", default="configs/default.yaml")
     p.add_argument("--set", nargs="*")           # e.g. train.lr=3e-4 train.epochs=50
     p.add_argument("--exp", default=None)
     

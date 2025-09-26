@@ -1,6 +1,6 @@
-from src.pendulum_ml.utils import parse_with_config
-from src.pendulum_ml.data.generate import simulate
-from src.pendulum_ml.data.process import to_processed
+from pendulum_ml.utils import parse_with_config
+from pendulum_ml.data.generate import simulate
+from pendulum_ml.data.process import to_processed
 
 if __name__ == "__main__":
     """ Generate and process data based on configuration. """

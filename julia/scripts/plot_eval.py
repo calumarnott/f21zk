@@ -50,4 +50,4 @@ if __name__ == "__main__":
                 # Append test line onto existing loss plot if it exists
                 loss_plot = figs / "loss.png"
                 # If you want to regenerate loss.png with a dashed line, do that in your plot_metrics.py
-                print(f"test_mse={test_mse} (add as dashed line in your loss plot if desired)")
+                print(f"test_mse={test_mse}")

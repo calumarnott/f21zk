@@ -5,7 +5,7 @@ import pandas as pd, matplotlib.pyplot as plt
 if __name__ == "__main__":
     
     p=argparse.ArgumentParser()
-    p.add_argument("--run", required=True)
+    p.add_argument("--run", required=True, help="Run id (experiments/<run>)")
     
     a=p.parse_args()
     
@@ -19,8 +19,8 @@ if __name__ == "__main__":
     
     # plot training and validation loss
     plt.figure()
-    plt.plot(df["epoch"], df["train"], label="Train MSE")
-    plt.plot(df["epoch"], df["val"], label="Val MSE")
+    plt.plot(df["epoch"], df["train_loss"], label="Train MSE")
+    plt.plot(df["epoch"], df["val_loss"], label="Val MSE")
     plt.xlabel("Epoch")
     plt.ylabel("MSE")
     plt.title("Training and Validation Loss")

@@ -30,7 +30,7 @@ def build_loaders(cfg):
     r_tr, r_val, r_te = r_tr/s, r_val/s, r_te/s
     
     # Generate dataset splits
-    g = torch.Generator().manual_seed(cfg["data"]["seed"]) 
+    g = torch.Generator().manual_seed(cfg["seed"]) 
     train_ds, val_ds, test_ds = random_split(full, [r_tr, r_val, r_te], generator=g)
     
     # Data loaders -> they handle batching and shuffling

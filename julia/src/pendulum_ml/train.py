@@ -1,6 +1,6 @@
 from pathlib import Path
 import json, time, torch, torch.nn as nn, torch.optim as optim
-import tqdm
+from tqdm import tqdm
 from .data.dataset import build_loaders
 from .models.registry import make_model
 from .evaluate import evaluate_test, evaluate_val
@@ -32,13 +32,13 @@ def train(cfg):
     
     # create model from registry
     model = make_model(cfg["model"]["name"],
-                        in_dim=2,
+                        in_dim=int(cfg["model"]["in_dim"]),
                         hidden=tuple(cfg["model"]["hidden"]),
-                        out_dim=1,
+                        out_dim=int(cfg["model"]["out_dim"]),
                         dropout=cfg["model"]["dropout"]).to(device) # create model from registry
 
     # optimizer and loss function
-    opt = optim.Adam(model.parameters(), lr=cfg["train"]["lr"])
+    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"]))
     criterion = nn.MSELoss()
     
     # Logging

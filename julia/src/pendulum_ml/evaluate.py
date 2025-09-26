@@ -146,7 +146,7 @@ def evaluate_test(
     
     # load model
     model = make_model(
-        cfg["model"]["type"],
+        cfg["model"]["name"],
         in_dim=int(cfg["model"]["in_dim"]),
         out_dim=int(cfg["model"]["out_dim"]),
         hidden=tuple(cfg["model"]["hidden"]),

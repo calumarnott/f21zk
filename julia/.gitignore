@@ -5,6 +5,7 @@ __pycache__/
 # data/raw/
 # data/processed/
 models/checkpoints/
+src/pendulum_ml.egg-info/
 # experiments/
 # !data/README.md
 # !models/checkpoints/.gitkeep

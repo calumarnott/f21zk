@@ -1,11 +1,11 @@
 import argparse, json, random, yaml
 import numpy as np, torch
 
-def seed_all(seed:int=0):
+def seed_all(seed:int=42):
     """ Set random seed for reproducibility.
 
     Args:
-        seed (int, optional): Random seed value. Defaults to 0.
+        seed (int, optional): Random seed value. Defaults to 42.
     """
     random.seed(seed)
     np.random.seed(seed)
@@ -49,7 +49,9 @@ def apply_overrides(cfg:dict, pairs:list[str]|None):
         *ks, last = k.split(".") # e.g. train.lr -> ks=["train"], last="lr"
         
         for kk in ks: 
-            d = d.setdefault(kk, {}) # create nested dicts if needed. E.g. if "train" not in cfg, set cfg["train"] = {}. if "train" in cfg, d = cfg["train"]
+            # iterate through intermediate keys, creating nested dicts as needed 
+            # E.g. if "train" not in cfg, set cfg["train"] = {}. if "train" in cfg, d = cfg["train"]
+            d = d.setdefault(kk, {}) 
             
         val = v
         if v.lower() in {"true","false"}: val = (v.lower()=="true") # if v is "true" or "false", convert to bool

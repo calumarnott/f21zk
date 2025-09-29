@@ -1,6 +1,5 @@
 seed: 42
-device: "cpu"          # "cuda:0" if you have GPU
-
+device: "cpu"  # will use "cuda" if available, don't change
 system: "pendulum"
 dynamics:
   m: 0.5

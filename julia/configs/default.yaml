@@ -1,5 +1,7 @@
 seed: 42
 device: "cpu"  # will use "cuda" if available, don't change
+
+# system dynamics parameters
 system: "pendulum"
 dynamics:
   m: 0.5
@@ -9,6 +11,7 @@ dynamics:
   dt: 0.02
   integrator: "rk4"
 
+# dataset parameters
 data:
   n_trajectories: 1
   horizon: 200
@@ -17,6 +20,7 @@ data:
   test_ratio: 0.1
   standardize: true
 
+# model parameters
 model:
   name: "mlp"
   in_dim: 2
@@ -24,6 +28,7 @@ model:
   out_dim: 1
   dropout: 0.0
 
+# training parameters
 train:
   batch_size: 32
   epochs: 30

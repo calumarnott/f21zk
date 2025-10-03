@@ -1,0 +1,16 @@
+# Quadcopter + Payload Parameters
+quad:
+  mass: 1.5          # kg
+  inertia: 0.03      # kg*m^2 (pitch inertia)
+  arm_length: 0.25   # m (distance from COM to rotor)
+
+payload:
+  mass: 0.3          # kg
+  rope_length: 1.0   # m (initial length)
+
+environment:
+  gravity: 9.81      # m/s^2
+
+winch:
+  model: "algebraic" # options: algebraic | first_order
+  omega: 10.0        # [1/s] if first_order model used

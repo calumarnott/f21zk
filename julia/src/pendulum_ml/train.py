@@ -15,7 +15,8 @@ def train(cfg):
         dict: Dictionary containing the run identifier and best validation loss.
     """
     
-    run = cfg.get("exp", f'run-{time.strftime("%Y%m%d-%H%M%S")}') # unique run id
+    run = cfg.get("exp", f'run') # unique run id
+    run += f'-{time.strftime("%Y%m%d-%H%M%S")}' # append timestamp to ensure uniqueness
     
     # create experiment directory
     out = Path("experiments")/run

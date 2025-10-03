@@ -29,14 +29,16 @@ if __name__ == "__main__":
 
     loaders = build_loaders(cfg)
     model = make_model(
-        cfg["model"]["type"],
+        cfg["model"]["name"],
         in_dim=int(cfg["model"].get("in_dim", 2)),
         out_dim=int(cfg["model"].get("out_dim", 1)),
         hidden=tuple(cfg["model"].get("hidden", (128,128))),
         dropout=float(cfg["model"].get("dropout", 0.0)),
     ).to(device)
+    
     state = torch.load(args.ckpt, map_location=device)
-    model.load_state_dict(state); model.eval()
+    model.load_state_dict(state)
+    model.eval()
 
     # clean metrics on a slice
     mse = nn.MSELoss(); mae = nn.L1Loss()

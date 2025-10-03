@@ -12,7 +12,7 @@ from tqdm import tqdm
 from .data.dataset import build_loaders
 from .evaluate import evaluate_val, evaluate_test
 from .models.registry import make_model
-from ..verification.attacks import make_attack_fn
+from .verification.attacks import make_attack_fn
 
 def _resolve_device(cfg) -> torch.device:
     default = "cuda" if torch.cuda.is_available() else "cpu"
@@ -51,7 +51,7 @@ def train_adv(cfg):
 
     # Model & Optim
     model = make_model(
-        cfg["model"]["type"],
+        cfg["model"]["name"],
         in_dim=int(cfg["model"].get("in_dim", 2)),
         out_dim=int(cfg["model"].get("out_dim", 1)),
         hidden=tuple(cfg["model"].get("hidden", (128, 128))),

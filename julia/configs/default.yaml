@@ -52,7 +52,7 @@ train:
       hi: [ 3.1416,  10.0]
 
 verify:
-  attack: "pgd"          # for a quick post-train adv eval (optional script below)
+  attack: "pgd"          # for a quick post-train adv eval
   norm: "linf"
   eps: 0.03
   steps: 40

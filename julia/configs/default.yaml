@@ -33,3 +33,5 @@ train:
   batch_size: 32
   epochs: 30
   lr: 1e-3
+  show_val_progress: true
+  show_test_progress: false

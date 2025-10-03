@@ -45,9 +45,7 @@ def evaluate(
     total_mse, total_mae, n_total = 0.0, 0.0, 0
     ys, yh = [], [] # for saving predictions if needed
 
-    iterable = loader
-    if show_progress:
-        iterable = tqdm(loader, desc=f"eval[{split}]", leave=False)
+    iterable = tqdm(loader, desc=f"eval[{split}]", leave=False) if show_progress else loader
 
     for X, y in iterable:
         
@@ -57,10 +55,27 @@ def evaluate(
         
         bs = X.size(0) # batch size
         
+        # compute batch metrics
+        batch_mse = float(mse(y_hat, y).item())
+        batch_mae = float(mae(y_hat, y).item())
+        
         # accumulate metrics
         total_mse += float(mse(y_hat, y).item()) * bs
         total_mae += float(mae(y_hat, y).item()) * bs
         n_total += bs
+        
+        # update bar with batch and running averages
+        if show_progress:
+            running_mse = total_mse / max(1, n_total)
+            running_mae = total_mae / max(1, n_total)
+            iterable.set_postfix(
+                {
+                    "batch_mse": f"{batch_mse:.6f}",
+                    "batch_mae": f"{batch_mae:.6f}",
+                    "running_mse": f"{running_mse:.6f}",
+                    "running_mae": f"{running_mae:.6f}",
+                }
+            )
         
         # store predictions if needed
         if save_preds_csv is not None:

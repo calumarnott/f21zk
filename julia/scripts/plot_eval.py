@@ -9,12 +9,12 @@ if __name__ == "__main__":
     
     # Parse command-line args
     p = argparse.ArgumentParser()
-    p.add_argument("--run", required=True, help="experiments/<run> folder")
+    p.add_argument("--run", required=True, help="<run> id (in experiments/<run>)")
     p.add_argument("--split", default="test", choices=["train", "val", "test"])
     args = p.parse_args()
 
     # Create figures directory if it doesn't exist
-    run_dir = Path(args.run)
+    run_dir = Path("experiments") / args.run
     figs = run_dir / "figures"
     figs.mkdir(parents=True, exist_ok=True)
 

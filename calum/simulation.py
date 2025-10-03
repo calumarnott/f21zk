@@ -15,7 +15,7 @@ def rk4_step(func, state, control, dt, params):
 # -------------------------------------------------
 # Simulation main
 # -------------------------------------------------
-def run_simulation(params, T=10.0, dt=0.01):
+def run_simulation(params, T=15.0, dt=0.01):
     # Initial state
     # [xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot]
     state = np.array([
@@ -37,7 +37,8 @@ def run_simulation(params, T=10.0, dt=0.01):
     g   = params["environment"]["gravity"]
 
     T_hover = (m_q + m_p) * g / 4.0   # distribute evenly across 4 rotors
-    control = np.array([T_hover, T_hover, T_hover, T_hover, 0.0])
+    u_l = 1.0 # rope feed rate m/s
+    control = np.array([T_hover, T_hover, T_hover, T_hover, u_l])
 
     # Storage for plotting
     time = np.arange(0, T, dt)

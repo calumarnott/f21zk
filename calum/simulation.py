@@ -2,20 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dynamics import load_params, derivatives
 
-# -------------------------------------------------
-# RK4 Integrator
-# -------------------------------------------------
-def rk4_step(func, state, control, dt, params):
+# RK4 numerical integrator to deal with the ODEs
+def rk4_step(func, state, control, dt, params): #func is the derivatives() from dynamics.py
     k1 = func(state, control, params)
     k2 = func(state + 0.5 * dt * k1, control, params)
     k3 = func(state + 0.5 * dt * k2, control, params)
     k4 = func(state + dt * k3, control, params)
     return state + (dt / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
 
-# -------------------------------------------------
 # Simulation main
-# -------------------------------------------------
-def run_simulation(params, T=15.0, dt=0.01):
+def run_simulation(params, T, dt):
     # Initial state
     # [xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot]
     state = np.array([
@@ -31,17 +27,17 @@ def run_simulation(params, T=15.0, dt=0.01):
         0.0      # phi_dot
     ])
 
-    # Example control input: hover thrust, no winch movement
     m_q = params["quad"]["mass"]
     m_p = params["payload"]["mass"]
     g   = params["environment"]["gravity"]
 
-    T_hover = (m_q + m_p) * g / 4.0   # distribute evenly across 4 rotors
+    T_hover = (m_q + m_p) * g / 4.0   # Thrust hover per rotor (we can change this to simulate climb etc)
     u_l = 1.0 # rope feed rate m/s
-    control = np.array([T_hover, T_hover, T_hover, T_hover, u_l])
+    control = np.array([T_hover, T_hover, T_hover, T_hover, u_l]) #control output vector
 
     # Storage for plotting
     time = np.arange(0, T, dt)
+    # store coords of quad and payload at each step
     quad_traj = []
     payload_traj = []
 
@@ -50,7 +46,7 @@ def run_simulation(params, T=15.0, dt=0.01):
         state = rk4_step(derivatives, state, control, dt, params)
 
         # Save trajectories
-        xq, zq, _, _, _, _, l, phi, _, _ = state
+        xq, zq, _, _, _, _, l, phi, _, _ = state #extract relevant states for traj
         # Payload position = quad position + l * u(phi)
         u = np.array([np.sin(phi), -np.cos(phi)])
         xp, zp = xq + l*u[0], zq + l*u[1]
@@ -60,14 +56,13 @@ def run_simulation(params, T=15.0, dt=0.01):
 
     return np.array(time), np.array(quad_traj), np.array(payload_traj)
 
-
-# -------------------------------------------------
 # Entry point
-# -------------------------------------------------
 if __name__ == "__main__":
     params = load_params("config.yaml")
 
-    time, quad_traj, payload_traj = run_simulation(params, T=10.0, dt=0.01)
+    T = 15.0 #s
+    dt = 0.01 #s
+    time, quad_traj, payload_traj = run_simulation(params, T, dt)
 
     # Plot results
     plt.figure(figsize=(8,6))

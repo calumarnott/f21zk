@@ -2,28 +2,19 @@ import numpy as np
 import yaml
 from pathlib import Path
 
-
-# -------------------------------------------------
 # Load parameters from YAML
-# -------------------------------------------------
 def load_params(config_path="config.yaml"):
     with open(Path(config_path), "r") as f:
         return yaml.safe_load(f)
 
-
-# -------------------------------------------------
 # Unit vectors based on rope swing angle
-# -------------------------------------------------
 def rope_vectors(phi):
     """Return unit vector along rope (quad -> payload) and tangential vector."""
     u = np.array([np.sin(phi), -np.cos(phi)])  # along rope
     t = np.array([np.cos(phi), np.sin(phi)])  # tangential, direction of phi+
     return u, t
 
-
-# -------------------------------------------------
 # Dynamics function
-# -------------------------------------------------
 def derivatives(state, control, params):
     """
     Compute state derivatives for quad + rope payload system in 2D.

@@ -18,4 +18,4 @@ def f(x: np.ndarray, u: float, p: Params) -> np.ndarray:
     
     theta_ddot = (p.g / p.L) * np.sin(theta) + (1.0 / (p.m * p.L**2)) * (u - p.c * theta_dot)
     
-    return np.array([theta + 0.0*theta_ddot, theta_ddot], dtype=float)  # return [θ̇, θ̈]
+    return np.array([theta + 0.0*theta_dot, theta_ddot], dtype=float)  # return [θ̇, θ̈]

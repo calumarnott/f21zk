@@ -15,7 +15,8 @@ def train(cfg):
         dict: Dictionary containing the run identifier and best validation loss.
     """
     
-    run = cfg.get("exp", f'run-{time.strftime("%Y%m%d-%H%M%S")}') # unique run id
+    run = cfg.get("exp", f'run') # unique run id
+    run += f'-{time.strftime("%Y%m%d-%H%M%S")}' # append timestamp to ensure uniqueness
     
     # create experiment directory
     out = Path("experiments")/run
@@ -38,7 +39,7 @@ def train(cfg):
                         dropout=cfg["model"]["dropout"]).to(device) # create model from registry
 
     # optimizer and loss function
-    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"]))
+    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"])) # TODO: add weight decay
     criterion = nn.MSELoss()
     
     # Logging
@@ -58,21 +59,32 @@ def train(cfg):
         
         train_loss = 0 # training loss
         
-        for X, y in tqdm(loaders["train"], desc=f"Epoch {epoch+1}/{epochs} train"):
+        pbar = tqdm(loaders["train"], desc=f"Epoch {epoch+1}/{epochs} train", leave=True)
+        
+        for X, y in pbar:
             
-            X,y = X.to(device), y.to(device)
+            X, y = X.to(device), y.to(device)
             
             opt.zero_grad() # reset gradients
             loss = criterion(model(X), y) # compute loss
             loss.backward() # backpropagate
             opt.step() # update weights
             
-            train_loss += loss.item() * X.size(0)
+            bs = X.size(0) # batch size
+            batch_loss = loss.item()
+            train_loss += batch_loss * bs
+            
+            # update progress bar
+            pbar.set_postfix({
+                "batch_mse": f"{batch_loss:.6f}",
+                "avg_mse": f"{train_loss/(pbar.n+1):.6f}"
+            })
+            
             
         train_loss /= len(loaders["train"].dataset) # average training loss accross all samples
 
         # ---- Validate (in memory, no checkpoint I/O) ----
-        val_res = evaluate_val(cfg, model, loaders=loaders, show_progress=False)
+        val_res = evaluate_val(cfg, model, loaders=loaders, show_progress=cfg["train"].get("show_val_progress", True))
         val_loss = float(val_res["mse"])
 
         # log epoch
@@ -85,7 +97,7 @@ def train(cfg):
             torch.save(model.state_dict(), best_ckpt.as_posix())
 
     # ---- Final test on best ckpt (writes JSON + predictions CSV) ----
-    test_res = evaluate_test(cfg, best_ckpt.as_posix(), run=run, loaders=loaders, show_progress=False)
+    test_res = evaluate_test(cfg, best_ckpt.as_posix(), run=run, loaders=loaders, show_progress=cfg["train"].get("show_test_progress", False))
 
     # Summary JSON (kept small and readable)
     summary = {

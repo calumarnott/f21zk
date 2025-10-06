@@ -7,15 +7,15 @@ if __name__ == "__main__":
     p=argparse.ArgumentParser()
     p.add_argument("--run", required=True, help="Run id (experiments/<run>)")
     
-    a=p.parse_args()
+    args = p.parse_args()
     
     # create figures directory if it doesn't exist
-    run=Path(a.run)
-    figs=run/"figures"
+    path = Path("experiments") / args.run
+    figs = path / "figures"
     figs.mkdir(parents=True, exist_ok=True)
     
     # load metrics CSV
-    df = pd.read_csv(run/"metrics.csv")
+    df = pd.read_csv(path/"metrics.csv")
     
     # plot training and validation loss
     plt.figure()

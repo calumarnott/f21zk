@@ -15,10 +15,10 @@ if __name__ == "__main__":
     inferred_run = os.path.splitext(os.path.basename(args.ckpt))[0]
     run = args.run or inferred_run
 
-    snap = Path("experiments") / run / "config.json"
-    if not snap.exists():
-        raise SystemExit(f"Config not found at {snap}. Provide a valid --run.")
-    cfg = load_cfg(str(snap)) 
+    path = Path("experiments") / run / "config.json"
+    if not path.exists():
+        raise SystemExit(f"Config not found at {path}. Provide a valid --run.")
+    cfg = load_cfg(str(path)) 
 
     results = evaluate_test(cfg, args.ckpt, run=run, loaders=None, show_progress=True)
     

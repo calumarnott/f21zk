@@ -155,7 +155,10 @@ if __name__ == "__main__":
         theta_des_hist,
     ) = run_simulation(params, T, dt)
 
-    # --- 1. Trajectory Plot (keep existing) ---
+    # Get output directory (same as script location)
+    output_dir = Path(__file__).parent
+
+    # --- 1. Trajectory Plot ---
     fig1, ax1 = plt.subplots(figsize=(4, 3))
     ax1.plot(quad_traj[:, 0], quad_traj[:, 1], label="Quadcopter")
     ax1.plot(payload_traj[:,0], payload_traj[:,1], label="Payload")
@@ -165,12 +168,13 @@ if __name__ == "__main__":
     ax1.set_title("Quadcopter + Payload Swing")
     ax1.grid()
     ax1.axis("equal")
-    # plt.show(block=False)
-    # plt.pause(0.1)
-    plt.show()
-    # --- 2. Time History Plots (x, z, theta) ---
-    fig2, axs2 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'trajectory.png', dpi=300, bbox_inches='tight')
+    plt.close(fig1)
 
+    # --- 2. Time History Plots ---
+    fig2, axs2 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
+    
     # z position
     axs2[0].plot(time, z_hist, label=r"$z_q$")
     axs2[0].plot(time, z_des_hist, '--', label=r"$z_{ref}$")
@@ -195,6 +199,7 @@ if __name__ == "__main__":
 
     fig2.suptitle("Quadcopter Position and Attitude Tracking")
     plt.tight_layout()
-    plt.show(block=True)
-    # plt.show(block=False)
-    # plt.pause(0.1)
+    plt.savefig(output_dir / 'time_histories.png', dpi=300, bbox_inches='tight')
+    plt.close(fig2)
+    
+    # Remove or comment out all plt.show() calls

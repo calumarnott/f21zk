@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 from dynamics import load_params, derivatives
 from pid_control import PIDController
 from pathlib import Path
+from animation import animate_quadcopter_payload
 
-#plt.ion()  # interactive mode on
 plt.close('all')    # close any existing figures
+anim_path = Path("sim/animations") / "quadcopter_payload.mp4"
 
 # RK4 numerical integrator
 def rk4_step(func, state, control, dt, params):
@@ -80,12 +81,15 @@ def run_simulation(params, T, dt):
         # Unpack states
         x_q, z_q, theta, xdot, zdot, thetadot, l, phi, ldot, phidot = state
         
+        #add step changes in reference position at different times 
         if t >= 2 and t <= 6:
             x_ref = 2.0
             z_ref = 7.0
         elif t > 6:
             x_ref = 4.0
             z_ref = 3.0
+    
+
         # --- Position control ---
         # a_x_swing = phi_controller.update(0.0 - phi, dt)
         # a_x_des = x_controller.update(x_ref - x_q, dt) + a_x_swing
@@ -177,8 +181,17 @@ if __name__ == "__main__":
         theta_des_hist,
     ) = run_simulation(params, T, dt)
 
+    # --- Animation ---
+    animate_quadcopter_payload(time, quad_traj, payload_traj, theta_hist, params,
+                           filename=anim_path.name, out_dir = anim_path.parent, fps=30)
+    
+
     # Get output directory (same as script location)
     output_dir = Path(__file__).parent
+
+    # ----------------------------------------------------------------------
+    # PLOTTING
+    # ----------------------------------------------------------------------
 
     # --- 1. Trajectory Plot ---
     fig1, ax1 = plt.subplots(figsize=(4, 3))

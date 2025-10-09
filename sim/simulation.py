@@ -39,10 +39,18 @@ def run_simulation(params, T, dt):
     TAU_MAX     = float(params.get("actuators", {}).get("max_pitch_torque", 5.0))
     T_MAX_TOTAL = 4.0 * T_MAX_ROTOR
 
-    # Controllers
-    x_controller = PIDController(Kp=0.7, Ki=0.0, Kd=0.25, u_min=-2.0, u_max=2.0)
-    z_controller = PIDController(Kp=3.5, Ki=0.0, Kd=1.2, u_min=-5.0, u_max=5.0)
-    Kp_theta, Kd_theta = 28.0, 10.0
+    # Load controller gains
+    Kp_x, Ki_x, Kd_x = float(params["pid"]["x"]["Kp"]), float(params["pid"]["x"]["Ki"]), float(params["pid"]["x"]["Kd"])
+    u_min_x, u_max_x = float(params["pid"]["x"]["u_min"]), float(params["pid"]["x"]["u_max"])
+
+    Kp_z, Ki_z, Kd_z = float(params["pid"]["z"]["Kp"]), float(params["pid"]["z"]["Ki"]), float(params["pid"]["z"]["Kd"])
+    u_min_z, u_max_z = float(params["pid"]["z"]["u_min"]), float(params["pid"]["z"]["u_max"])
+
+    Kp_theta, Kd_theta = float(params["pid"]["theta"]["Kp"]), float(params["pid"]["theta"]["Kd"])
+
+    # Define controllers
+    x_controller = PIDController(Kp_x, Ki_x, Kd_x, u_min_x, u_max_x)
+    z_controller = PIDController(Kp_z, Ki_z, Kd_z, u_min_z, u_max_z)
 
     x_ref = 0.0
     z_ref = 5.0
@@ -142,7 +150,7 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Config file not found. Searched: {candidates}")
     params = load_params(str(config_file))
 
-    T, dt = 15.0, 0.01
+    T, dt = 10.0, 0.01
     (
         time,
         quad_traj,

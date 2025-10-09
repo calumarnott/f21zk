@@ -14,3 +14,22 @@ environment:
 winch:
   model: "algebraic" # options: algebraic | first_order
   omega: 10.0        # [1/s] if first_order model used
+
+pid:
+  x:
+    Kp: 0.7
+    Ki: 0.0
+    Kd: 0.25
+    u_min: -2.0
+    u_max: 2.0
+
+  z:
+    Kp: 6.0
+    Ki: 0.0
+    Kd: 2.0
+    u_min: -5.0
+    u_max: 5.0
+
+  theta:
+    Kp: 28.0
+    Kd: 10.0

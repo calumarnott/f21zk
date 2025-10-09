@@ -25,8 +25,8 @@ pid:
 
   z:
     Kp: 8.0
-    Ki: 0 #2.5
-    Kd: 4 #5
+    Ki: 0 
+    Kd: 4 
     u_min: -5.0
     u_max: 5.0
 

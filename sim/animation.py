@@ -54,15 +54,15 @@ def animate_quadcopter_payload(time, quad_traj, payload_traj, theta_hist, params
     # Artists
     quad_body, = ax.plot([], [], lw=2.5, color='k')
     arm_line, = ax.plot([], [], lw=2, color='gray')
-    rotor_L, = ax.plot([], [], 'o', color='C0', ms=6)
-    rotor_R, = ax.plot([], [], 'o', color='C0', ms=6)
+    rotor_L, = ax.plot([], [], 'o', color='C0', ms=8)
+    rotor_R, = ax.plot([], [], 'o', color='C0', ms=8)
     rope_line, = ax.plot([], [], color='brown', lw=1.5)
     payload, = ax.plot([], [], 'o', color='red', ms=10)
     time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes)
 
     # Geometry constants
-    body_w, body_h = 0.1, 0.1
-    arm_half = d
+    body_w, body_h = 3*d, 2*d
+    arm_half = 4*d
 
     # --- Initialization ---
     def init():

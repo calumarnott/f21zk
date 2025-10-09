@@ -20,7 +20,7 @@ def rk4_step(func, state, control, dt, params):
 def run_simulation(params, T, dt):
     # Initial state 
     state = np.array([
-        2.0, #x_q
+        0.0, #x_q
         5.0, #z_q
         0.0, #theta
         0.0, #x_q_dot
@@ -79,7 +79,13 @@ def run_simulation(params, T, dt):
     for t in time:
         # Unpack states
         x_q, z_q, theta, xdot, zdot, thetadot, l, phi, ldot, phidot = state
-
+        
+        if t >= 2 and t <= 6:
+            x_ref = 2.0
+            z_ref = 7.0
+        elif t > 6:
+            x_ref = 4.0
+            z_ref = 3.0
         # --- Position control ---
         # a_x_swing = phi_controller.update(0.0 - phi, dt)
         # a_x_des = x_controller.update(x_ref - x_q, dt) + a_x_swing

@@ -18,10 +18,18 @@ def rk4_step(func, state, control, dt, params):
 # ----------------------------------------------------------------------
 # Simulation main
 def run_simulation(params, T, dt):
-    # Initial state [xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot]
+    # Initial state 
     state = np.array([
-        0.0, 3.0, 0.0, 0.0, 0.0, 0.0,
-        params["payload"]["rope_length"], 0.0, 0.0, 0.0
+        2.0, #x_q
+        5.0, #z_q
+        0.0, #theta
+        0.0, #x_q_dot
+        0.0, #z_q_dot
+        0.0, #theta_dot
+        params["payload"]["rope_length"], #l
+        0.0, #phi
+        0.0, #l_dot
+        0.0 #phi_dot
     ], dtype=float)
 
     # Parameters
@@ -42,7 +50,7 @@ def run_simulation(params, T, dt):
     # Load controller gains
     Kp_x, Ki_x, Kd_x = float(params["pid"]["x"]["Kp"]), float(params["pid"]["x"]["Ki"]), float(params["pid"]["x"]["Kd"])
     u_min_x, u_max_x = float(params["pid"]["x"]["u_min"]), float(params["pid"]["x"]["u_max"])
-
+   
     Kp_z, Ki_z, Kd_z = float(params["pid"]["z"]["Kp"]), float(params["pid"]["z"]["Ki"]), float(params["pid"]["z"]["Kd"])
     u_min_z, u_max_z = float(params["pid"]["z"]["u_min"]), float(params["pid"]["z"]["u_max"])
 

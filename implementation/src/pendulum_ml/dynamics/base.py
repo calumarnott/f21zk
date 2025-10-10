@@ -32,7 +32,6 @@ def rk4_step(x, u, f, p):
     k4 = f(x + p.dt*k3, u, p)
     return x + (p.dt/6.0)*(k1 + 2*k2 + 2*k3 + k4)
 
-
 class PIDController:
     """ Reusable, axis-agnostic PID with simple anti-windup (conditional integration)."""
     
@@ -99,3 +98,32 @@ class PIDController:
         self.prev_error = error
         
         return u
+    
+def build_controllers_from_cfg(ctrl_cfg: dict, axes: list[str]):
+    """Build a dict of controllers keyed by axis name from YAML.
+    
+       ctrl_cfg looks like:
+       { "type": "pid", "pid": { "theta": {...}, "x": {...}, ... } }
+    """
+    if ctrl_cfg.get("type", "pid").lower() != "pid":
+        raise NotImplementedError("Only 'pid' controller type is implemented right now.")
+
+    pid_block = ctrl_cfg.get("pid", {})
+    
+    controllers = {}
+    for axis in axes:
+        p = pid_block.get(axis)
+        if p is None:
+            raise KeyError(f"Missing PID block for axis '{axis}' in controller.pid")
+        controllers[axis] = PIDController(
+            Kp=p.get("Kp", 0.0),
+            Ki=p.get("Ki", 0.0),
+            Kd=p.get("Kd", 0.0),
+            u_min=p.get("u_min", None),
+            u_max=p.get("u_max", None),
+        )
+        
+        # stash setpoint on the controller instance for convenience
+        controllers[axis].setpoint = p.get("setpoint", 0.0)
+        
+    return controllers

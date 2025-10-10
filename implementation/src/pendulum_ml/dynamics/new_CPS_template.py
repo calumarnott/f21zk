@@ -3,9 +3,18 @@ import numpy as np
 # Describe what this system expects and controls
 REQUIRED_PARAMS = {} # Dictionary matching params in the dynamics section of the config file
 AXES = ["theta"] # Controlled axes. E.g. for a pendulum.
+STATE_NAMES = ["theta", "theta_dot"] # Names of state variables, in order
 
 def validate_params(params):
-    """ Validate that all required parameters are present at any level of nesting."""
+    """ Validate that all required parameters are present at any level of nesting.
+    
+    Args:
+        params (dict): parameters dictionary
+    Raises:
+        ValueError: if a required parameter is missing or has the wrong type
+    Returns:
+        bool: True if all required parameters are present
+    """
     for key, value in REQUIRED_PARAMS.items():
         if key not in params:
             raise ValueError(f"Missing required parameter: {key}")
@@ -33,6 +42,16 @@ def error(axis: str, x: np.ndarray, setpoint: float) -> float:
         raise ValueError(f"Axis '{axis}' not found in AXES list.")
     
     return setpoint - x[axis_index]
+
+def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
+    """ Sample an initial state.
+
+    Args:
+        rng: np.random.Generator instance
+        dyn_cfg (dict): dynamics configuration dictionary
+    """
+    raise NotImplementedError("State sampler 'sample_x0' must be implemented in dynamics/<system_name>.py")
+
 
 def f(state: np.ndarray, control: np.ndarray, params: dict) -> np.ndarray:
     """ Dynamics function.

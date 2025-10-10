@@ -11,6 +11,18 @@ dynamics:
   dt: 0.02
   integrator: "rk4"
 
+controller:
+  type: "pid"
+  pid:
+    # One axis for pendulum. Later you can add more keys for multi-axis systems.
+    theta:
+      Kp: 10.0
+      Ki: 0.0
+      Kd: 2.0
+      u_min: -10.0
+      u_max: 10.0
+      setpoint: 0.0
+
 # dataset parameters
 data:
   n_trajectories: 1

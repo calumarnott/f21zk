@@ -9,21 +9,21 @@ def rope_vectors(phi):
     return u, t
 
 # Dynamics function
-def f(x: np.ndarray, u: np.ndarray, p: Params) -> np.ndarray:
-    
-    
-    
-    # """
-    # Compute state derivatives for quad + rope payload system in 2D.
+def f(state: np.ndarray, control: np.ndarray, params: Params) -> np.ndarray:
+    """
+    Compute state derivatives for quad + rope payload system in 2D.
 
-    # State vector:
-    #   [xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot]
-    # Control vector:
-    #   [T1, T2, T3, T4, u_l]
-    # """
+    State vector:
+      [xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot]
+    Control vector:
+      [T1, T2, T3, T4, u_l]
+    
+    Returns:
+        dx: time derivative of state vector (10,)
+    """
     # Unpack state
-    xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot = x
-    T1, T2, T3, T4, u_l = u
+    xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot = state
+    T1, T2, T3, T4, u_l = control
 
     # Params
     m_q = params["quad"]["mass"]

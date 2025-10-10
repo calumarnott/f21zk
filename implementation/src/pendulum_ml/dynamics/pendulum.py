@@ -1,24 +1,25 @@
 import numpy as np
 from .base import Params
 
-def f(x: np.ndarray, u: float, p: Params) -> np.ndarray:
+def f(state: np.ndarray, control: float, params: Params) -> np.ndarray:
     """ Pendulum continuous-time dynamics.
 
     Args:
-        x (np.ndarray): state [theta, theta_dot]
-        u (float): control input (torque)
-        p (Params): pendulum parameters
+        state (np.ndarray): state [theta, theta_dot]
+        control (float): control input (torque)
+        params (Params): pendulum parameters
 
     Returns:
         np.ndarray: state derivative [theta_dot, theta_ddot]
     """
     
-    theta = float(x[0])
-    theta_dot = float(x[1])
+    theta = float(state[0])
+    theta_dot = float(state[1])
     
     # Dynamics equations
-    theta_ddot = - (p.g / p.l) * np.sin(theta) \
-                 + (1.0 / p.m * p.l**2) * float(u) \
-                 - (p.c / (p.m * p.l**2)) * theta_dot
+    # theta_ddot = - (g / l) * sin(theta) + (1/m/l^2) * u - (c/m/l^2) * theta_dot
+    theta_ddot = - (params.g / params.l) * np.sin(theta) \
+                 + (1.0 / params.m * params.l**2) * float(control) \
+                 - (params.c / (params.m * params.l**2)) * theta_dot
                  
     return np.array([theta_dot, theta_ddot], dtype=float)

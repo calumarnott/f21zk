@@ -4,11 +4,13 @@ device: "cpu"  # will use "cuda" if available, don't change
 # system dynamics parameters
 system: "pendulum"
 dynamics:
-  m: 0.5
-  L: 0.5
-  c: 0.0
-  g: 9.81
-  dt: 0.02
+  params:
+    m: 0.5
+    L: 0.5
+    c: 0.0
+    g: 9.81
+  dt: 0.01
+  control_dt: 0.5 # controller update period (should be >= dt and a multiple of dt)
   integrator: "rk4"
 
 controller:
@@ -26,7 +28,10 @@ controller:
 # dataset parameters
 data:
   n_trajectories: 1
-  horizon: 200
+  initial_state:
+    - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
+    # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)
+  sim_time: 20 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1

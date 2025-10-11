@@ -27,7 +27,7 @@ controller:
 
 # dataset parameters
 data:
-  n_trajectories: 1
+  n_trajectories: 9
   initial_state:
     - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
     # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)

@@ -104,6 +104,10 @@ def build_controllers_from_cfg(ctrl_cfg: dict, axes: list[str]):
     
        ctrl_cfg looks like:
        { "type": "pid", "pid": { "theta": {...}, "x": {...}, ... } }
+       
+       # TODO: extend to inner-loop controllers, specified in config as:
+       { "type": "pid", "pid": { "axes": {"theta": {...}, "x": {...}, ... }, 
+                                 "pid" : {"axes": {...}}} }
     """
     if ctrl_cfg.get("type", "pid").lower() != "pid":
         raise NotImplementedError("Only 'pid' controller type is implemented right now.")
@@ -123,7 +127,69 @@ def build_controllers_from_cfg(ctrl_cfg: dict, axes: list[str]):
             u_max=p.get("u_max", None),
         )
         
-        # stash setpoint on the controller instance for convenience
-        controllers[axis].setpoint = p.get("setpoint", 0.0)
-        
     return controllers
+
+def validate_params(cps, params):
+    """ Validate that all required parameters are present at any level of nesting.
+    
+    Args:
+        params (dict): parameters dictionary
+    Raises:
+        ValueError: if a required parameter is missing or has the wrong type
+    Returns:
+        bool: True if all required parameters are present
+    """
+    for key, value in cps.REQUIRED_PARAMS.items():
+        if key not in params:
+            raise ValueError(f"Missing required parameter: {key}")
+        if isinstance(value, dict):
+            if not isinstance(params[key], dict):
+                raise ValueError(f"Parameter {key} should be a dictionary.")
+            validate_params(params[key])
+    return True
+
+def control_error(cps, axis: str, x: np.ndarray, setpoint: float) -> float:
+    """ Compute error for a given axis.
+
+    Args:
+        cfs (module): dynamics module (e.g. pendulum_ml.dynamics.pendulum)
+        axis (str): axis name
+        x (np.ndarray): current state vector
+        setpoint (float): desired setpoint value
+
+    Returns:
+        float: error value
+    """
+    assert axis in cps.CONTROL_AXES, f"Axis '{axis}' not in CONTROL_AXES {cps.CONTROL_AXES}"
+    try:
+        axis_index = cps.STATE_NAMES.index(axis)
+    except ValueError:
+        raise ValueError(f"Axis '{axis}' not found in the state vector.")
+    
+    return setpoint - x[axis_index]
+
+def trajectory_error(cps, axis: str, x: np.ndarray, trajectory: np.ndarray, t: float, dt: float) -> float:
+    """ Compute error for a given axis against a trajectory.
+
+    Args:
+        cps (module): dynamics module (e.g. pendulum_ml.dynamics.pendulum)
+        axis (str): axis name
+        x (np.ndarray): current state vector
+        trajectory (np.ndarray): desired trajectory (num_steps x state_dim)
+        t (float): current time
+        dt (float): time step size
+    Returns:
+        float: error value
+    """
+    assert axis in cps.TRAJECTORY_AXES, f"Axis '{axis}' not in TRAJECTORY_AXES {cps.TRAJECTORY_AXES}"
+    try:
+        axis_index = cps.STATE_NAMES.index(axis)
+    except ValueError:
+        raise ValueError(f"Axis '{axis}' not found in the state vector.")
+    
+    step = int(t / dt)
+    if step >= trajectory.shape[0]:
+        step = trajectory.shape[0] - 1  # clamp to last step if out of bounds
+    
+    setpoint = trajectory[step, axis_index]
+    return setpoint - x[axis_index]

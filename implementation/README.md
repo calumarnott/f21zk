@@ -2,6 +2,8 @@ cd implementation
 
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python -m pip install -e . 
+
 
 # Generate data from dynamics
 python scripts/generate_data.py 
@@ -21,5 +23,5 @@ python scripts/evaluate.py --run <your-run-id>
 3. In the dynamics file, each module (pendulum.py, quadcopter.py) should have:
    - A function `f(state, control, params)` that returns the system derivatives, given the current state, control input, and system parameters. This represents the next state of the system.
    - A `REQUIRED_PARAMS` list that specifies the names of the parameter keys the system expects under `dynamics` in the config file.
-   - `AXES`: the control channels it supports (e.g., ['theta'] for pendulum, ['x', 'z', 'theta'] for quadcopter).
+   - `CONTROL_AXES`: the control channels it supports (e.g., ['theta'] for pendulum, ['x', 'z', 'theta'] for quadcopter).
    - `error(axis, x, setpoint)`: a function that computes the error for a given axis.

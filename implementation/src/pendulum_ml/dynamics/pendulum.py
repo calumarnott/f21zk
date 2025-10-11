@@ -1,5 +1,4 @@
 import numpy as np
-from .base import Params
 
 # Describe what this system expects and controls
 REQUIRED_PARAMS = {
@@ -8,7 +7,7 @@ REQUIRED_PARAMS = {
     "c": float,
     "g": float
     } # Dictionary matching params in the dynamics.params section of the config file
-AXES = ["theta"] # Controlled axes. E.g. for a pendulum.
+CONTROL_AXES = ["theta"] # Controlled axes. E.g. for a pendulum.
 STATE_NAMES = ["theta", "theta_dot"] # Names of state variables, in order
 
 def validate_params(params):
@@ -30,24 +29,6 @@ def validate_params(params):
             validate_params(params[key])
     return True
 
-def error(axis: str, x: np.ndarray, setpoint: float) -> float:
-    """ Compute error for a given axis.
-
-    Args:
-        axis (str): axis name
-        x (np.ndarray): current state vector
-        setpoint (float): desired setpoint value
-
-    Returns:
-        float: error value
-    """
-    # axis_index = AXES.index(axis)
-    try:
-        axis_index = AXES.index(axis)
-    except ValueError:
-        raise ValueError(f"Axis '{axis}' not found in AXES list.")
-    
-    return setpoint - x[axis_index]
 
 def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
     """System default x0 sampler. Used only if config doesn't override.

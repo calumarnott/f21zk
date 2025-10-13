@@ -1,5 +1,41 @@
 import numpy as np
-from .base import Params
+from dataclasses import dataclass
+
+STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
+                "theta_dot", "l", "phi", "l_dot", "phi_dot"]
+CONTROL_AXES = ["x", "z", "theta"]
+
+
+# --- Leaf-level dataclasses ---
+@dataclass
+class QuadParams:
+    mass: float
+    inertia: float
+    arm_length: float
+
+@dataclass
+class PayloadParams:
+    mass: float
+    rope_length: float
+
+@dataclass
+class EnvironmentParams:
+    gravity: float
+
+@dataclass
+class WinchParams:
+    model: str
+    omega: float = 0.0
+
+# --- Top-level dataclass that groups them ---
+@dataclass
+class Params:
+    quad: QuadParams
+    payload: PayloadParams
+    environment: EnvironmentParams
+    winch: WinchParams
+
+
 
 # Unit vectors based on rope swing angle
 def rope_vectors(phi):
@@ -9,7 +45,7 @@ def rope_vectors(phi):
     return u, t
 
 # Dynamics function
-def f(state: np.ndarray, control: np.ndarray, params: Params) -> np.ndarray:
+def f(state: np.ndarray, control: dict, params: Params) -> np.ndarray:
     """
     Compute state derivatives for quad + rope payload system in 2D.
 
@@ -23,19 +59,19 @@ def f(state: np.ndarray, control: np.ndarray, params: Params) -> np.ndarray:
     """
     # Unpack state
     xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot = state
-    T1, T2, T3, T4, u_l = control
+    T1, T2, T3, T4, u_l = control # TODO: change to dict access
 
     # Params
-    m_q = params["quad"]["mass"]
-    I_q = params["quad"]["inertia"]
-    d = params["quad"]["arm_length"]
+    m_q = params.quad.mass
+    I_q = params.quad.inertia
+    d = params.quad.arm_length
 
-    m_p = params["payload"]["mass"]
+    m_p = params.payload.mass
 
-    g = params["environment"]["gravity"]
+    g = params.environment.gravity
 
-    winch_model = params["winch"]["model"]
-    omega_l = params["winch"].get("omega", 0.0)
+    winch_model = params.winch.model
+    omega_l = params.winch.omega
 
     # Rotor thrust totals
     T_tot = T1 + T2 + T3 + T4

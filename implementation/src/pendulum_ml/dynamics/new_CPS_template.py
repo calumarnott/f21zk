@@ -1,10 +1,24 @@
 import numpy as np
 
 # Describe what this system expects and controls
-REQUIRED_PARAMS = {} # Dictionary matching params in the dynamics section of the config file
 STATE_NAMES = ["theta", "theta_dot"] # Names of state variables, in order
 CONTROL_AXES = ["theta"] # Controlled axes. E.g. for a pendulum.
 
+# Describe the required parameters and their types. Use separate
+# dataclasses for hierarchical/nested parameters.
+@dataclass
+class Inner:
+    mass: float
+    position: np.ndarray
+
+# --- Top-level dataclass that groups inner dataclass ---
+# Must be named Params
+@dataclass
+class Params:
+    mass: float
+    length: float
+    damping: float
+    hierarchical_params: Inner
 
 def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
     """ Sample an initial state.

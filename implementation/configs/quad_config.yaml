@@ -1,0 +1,98 @@
+seed: 42
+device: "cpu"  # will use "cuda" if available, don't change
+
+# system dynamics parameters
+system: "quadcopter"
+dynamics:
+  dt: 0.01
+  control_dt: 0.5 # controller update period (should be >= dt and a multiple of dt)
+  integrator: "rk4"
+  params:
+    quad:
+      mass: 1.5          # kg
+      inertia: 0.03      # kg*m^2 (pitch inertia)
+      arm_length: 0.25   # m (distance from COM to rotor)
+    payload:
+      mass: 0.          # kg
+      rope_length: 1.0   # m (initial length)
+    environment:
+      gravity: 9.81      # m/s^2
+    winch:
+      model: "algebraic" # options: algebraic | first_order
+      omega: 10.0        # [1/s] if first_order model used
+
+controller:
+  type: "pid"
+  pid:
+    x:
+      Kp: 8 
+      Ki: 0
+      Kd: 5
+      u_min: -5.0
+      u_max: 5.0
+      setpoint: 0.0
+
+    z:
+      Kp: 8.0
+      Ki: 0 
+      Kd: 4 
+      u_min: -5.0
+      u_max: 5.0
+      setpoint: 0.0
+
+    theta:
+      Kp: 30 
+      Kd: 4 
+      setpoint: 0.0
+
+# dataset parameters
+data:
+  n_trajectories: 1
+  initial_state:
+    - [-3.0, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] # xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot
+  #   - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
+  #   # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)
+  sim_time: 20 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+  standardize: true
+
+# model parameters
+model:
+  name: "mlp"
+  in_dim: 2
+  hidden: [128, 128]
+  out_dim: 1
+  dropout: 0.0
+
+# training parameters
+train:
+  batch_size: 32
+  epochs: 30
+  lr: 1e-3
+  show_val_progress: true
+  show_test_progress: false
+  adv:
+    enabled: false       # turn on adversarial training
+    method: "pgd"        # "pgd" or "fgsm"
+    norm: "linf"         # "linf" or "l2"
+    eps: 0.03
+    steps: 10            # PGD only; FGSM ignores this
+    alpha: null          # null -> eps/steps
+    p: 1.0               # probability to attack a batch (0..1)
+    mode: "replace"      # "replace" | "mix"
+    mix_alpha: 0.5       # if mode="mix": loss = mix_alpha*adv + (1-mix_alpha)*clean
+    start_epoch: 0       # wait N epochs before starting attacks (curriculum)
+    clip:
+      enabled: false     # clip adv inputs to ranges (helpful if states have known bounds)
+      lo: [-3.1416, -10.0]
+      hi: [ 3.1416,  10.0]
+
+verify:
+  attack: "pgd"          # for a quick post-train adv eval
+  norm: "linf"
+  eps: 0.03
+  steps: 40
+  alpha: null
+  n_samples: 256

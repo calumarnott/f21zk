@@ -1,0 +1,19 @@
+name: pendulum-ml
+channels:
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.11
+  - pip
+  - numpy>=1.26
+  - scipy>=1.11
+  - pandas>=2.0
+  - scikit-learn>=1.5
+  - matplotlib>=3.8
+  - pyyaml>=6.0
+  - tqdm>=4.66
+  - pytorch>=2.2
+  - setuptools>=68
+  - wheel
+  - pip:
+      - -e .

@@ -2,29 +2,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from ..dynamics.base import euler_step, rk4_step, build_controllers_from_cfg,\
-    validate_params, control_error, trajectory_error
-import importlib
-
-
-def _import_system(system_name: str):
-    """ Import a dynamics module by system name.
-
-    Args:
-        system_name (str): system name, e.g. "pendulum"
-
-    Raises:
-        ModuleNotFoundError: _if the module cannot be found
-
-    Returns:
-        module: the imported dynamics module
-    """
-    # e.g. "pendulum" -> "src.pendulum_ml.dynamics.pendulum"
-    # mod = importlib.import_module(f"src.pendulum_ml.dynamics.{system_name}")
-    try:
-        mod = importlib.import_module(f"pendulum_ml.dynamics.{system_name}")
-    except ModuleNotFoundError as e:
-        raise ModuleNotFoundError(f"Could not find dynamics module for system '{system_name}'. Ensure 'src/pendulum_ml/dynamics/{system_name}.py' exists.") from e
-    return mod
+    validate_params, control_error, wrap_to_pi
+from ..utils import import_system
 
 def _resolve_initial_states(cfg, cps):
     """ Resolve initial states from config or dynamics module.
@@ -105,7 +84,21 @@ def _next_filename(out_dir):
     next_num = max(nums) + 1 if nums else 0
     return f"traj_{next_num:03d}.csv"
 
-def simulate(cfg, out_dir="data/raw/pendulum"):
+def _add_initial_states_to_cfg(cfg, init_states):
+    """ Add initial states to config for reference.
+
+    Args:
+        cfg (dict): configuration dictionary
+        init_states (list): list of initial states as np.ndarrays
+
+    Returns:
+        dict: updated configuration dictionary with initial states added
+    """
+    cfg["data"] = dict(cfg.get("data", {}))  # ensure data section exists
+    cfg["data"]["initial_state"] = [s.tolist() for s in init_states]  # convert np.ndarrays to lists
+    return cfg
+
+def simulate(cfg, out_dir="data/raw"):
     """ Simulate a PID trajectory.
 
     Args:
@@ -115,19 +108,19 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
     Returns:
         list: list containing the path to the saved trajectory CSV file
     """
-    
-    out = Path(out_dir); out.mkdir(parents=True, exist_ok=True) # ensure output directory exists
+    sys_name = cfg["system"]               # e.g., "pendulum"
+    out = Path(out_dir) / sys_name
+    out.mkdir(parents=True, exist_ok=True) # ensure output directory exists
     
     # Load system module from config
-    sys_name = cfg["system"]               # e.g., "pendulum"
-    cps = _import_system(sys_name)
+    cps = import_system(sys_name)
 
-    # Dynamics params (dict) — validated by the system itself
+    # Dynamics params (dict) — validated by the system params class
     dyn = dict(cfg["dynamics"])            # shallow copy in case we mutate
-    validate_params(cps, dyn["params"])  # validate params dict
+    params = validate_params(cps.Params, dyn["params"])  # validate params dict
     
     # Build controllers per axis from config
-    controllers = build_controllers_from_cfg(cfg["controller"], cps.AXES)
+    controllers = build_controllers_from_cfg(cfg["controller"], cps.CONTROL_AXES)
     for c in controllers.values():
         c.reset()  # reset controller state
         
@@ -154,10 +147,9 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
         # get initial state and add it to output
         x0 = init_states[i]  # initial state for this trajectory
         x = x0.copy()  # current state
-        
-        dyn_params = dyn["params"]  # dynamics parameters dict
 
         control_steps_counter = 0  # counter for control steps
+        
         # --- main simulation loop ---
         while t < T:
             
@@ -171,14 +163,20 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
                     sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
                     err = control_error(cps, axis, x, sp)
                     u = ctrl.update(err, dt_ctrl)    # derivative/integral use control_dt
-                    err_dict[axis] = float(err)
+                    # err_dict[axis] = float(err)
                     u_dict[axis]  = float(u)
             
             control_steps_counter += 1
                     
             # Step the dynamics with current control inputs
-            x = step(x, u_dict, cps.f, dyn_params)
+            x = step(x, u_dict, cps.f, params, dt)
+            x[0] = wrap_to_pi(x[0])  # wrap angle theta to [-pi, pi]
             t += dt
+            
+            for axis, ctrl in controllers.items():
+                sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
+                err = control_error(cps, axis, x, sp)
+                err_dict[axis] = float(err)
             
             # --- record a row aligned as (state_t, error_t, u_t) ---
             row = {
@@ -202,4 +200,4 @@ def simulate(cfg, out_dir="data/raw/pendulum"):
     df = pd.DataFrame(rows, columns=col_order)
     df.to_csv(out_path, index=False)
     print(f"Saved trajectory to {out_path}")
-    return [str(out_path)]
+    return str(out_path)

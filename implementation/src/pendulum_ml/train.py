@@ -26,7 +26,13 @@ def train(cfg):
     (out/"config.json").write_text(json.dumps(cfg, indent=2))
     
     # use GPU if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available(): # macOS with MPS
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+        
     cfg["device"] = str(device) # update cfg with device info
     
     loaders = build_loaders(cfg) # build data loaders

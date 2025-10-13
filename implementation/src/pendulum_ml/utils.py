@@ -1,5 +1,26 @@
 import argparse, json, random, yaml
 import numpy as np, torch
+import importlib
+
+def import_system(system_name: str):
+    """ Import a dynamics module by system name.
+
+    Args:
+        system_name (str): system name, e.g. "pendulum"
+
+    Raises:
+        ModuleNotFoundError: _if the module cannot be found
+
+    Returns:
+        module: the imported dynamics module
+    """
+    # e.g. "pendulum" -> "src.pendulum_ml.dynamics.pendulum"
+    # mod = importlib.import_module(f"src.pendulum_ml.dynamics.{system_name}")
+    try:
+        mod = importlib.import_module(f"pendulum_ml.dynamics.{system_name}")
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(f"Could not find dynamics module for system '{system_name}'. Ensure 'src/pendulum_ml/dynamics/{system_name}.py' exists.") from e
+    return mod
 
 def seed_all(seed:int=42):
     """ Set random seed for reproducibility.
@@ -83,6 +104,11 @@ def parse_with_config():
     cfg = apply_overrides(load_cfg(args.config), args.set) 
     
     if args.exp: cfg["exp"] = args.exp # set experiment name if provided
+    
+    # set in_dim and out_dim based on system
+    cps = import_system(cfg["system"])
+    cfg["model"]["in_dim"] = len(cps.STATE_NAMES) + len(cps.CONTROL_AXES) # state + error for each control axis
+    cfg["model"]["out_dim"] = len(cps.CONTROL_AXES) # one output per control axis
     
     seed_all(cfg.get("seed", 0))
     

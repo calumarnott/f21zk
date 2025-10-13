@@ -12,8 +12,7 @@ def build_loaders(cfg):
 
     Returns:
         dict: dictionary containing train, val, test data loaders
-    """
-    
+    """    
     # Load processed data
     root = Path("data/processed")/cfg["system"]
     X = torch.load(root/"X.pt")

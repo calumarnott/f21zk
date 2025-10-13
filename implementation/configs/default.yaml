@@ -5,12 +5,12 @@ device: "cpu"  # will use "cuda" if available, don't change
 system: "pendulum"
 dynamics:
   params:
-    m: 0.5
-    L: 0.5
+    m: 2.
+    l: 1.
     c: 0.0
     g: 9.81
   dt: 0.01
-  control_dt: 0.5 # controller update period (should be >= dt and a multiple of dt)
+  control_dt: 0.01 # controller update period (should be >= dt and a multiple of dt)
   integrator: "rk4"
 
 controller:
@@ -20,7 +20,7 @@ controller:
     theta:
       Kp: 10.0
       Ki: 0.0
-      Kd: 2.0
+      Kd: 10.0
       u_min: -10.0
       u_max: 10.0
       setpoint: 0.0
@@ -40,15 +40,13 @@ data:
 # model parameters
 model:
   name: "mlp"
-  in_dim: 2
-  hidden: [128, 128]
-  out_dim: 1
+  hidden: [15, 15, 4] # hidden layer sizes
   dropout: 0.0
 
 # training parameters
 train:
   batch_size: 32
-  epochs: 30
+  epochs: 50
   lr: 1e-3
   show_val_progress: true
   show_test_progress: false

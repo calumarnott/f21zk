@@ -5,7 +5,7 @@ quad:
   arm_length: 0.25   # m (distance from COM to rotor)
 
 payload:
-  mass: 0          # kg
+  mass: 0.25         # kg
   rope_length: 1.0   # m (initial length)
 
 environment:

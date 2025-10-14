@@ -28,7 +28,7 @@ def run_simulation(params, T, dt):
         0.0, #z_q_dot
         0.0, #theta_dot
         params["payload"]["rope_length"], #l
-        0.0, #phi
+        -0.18, #phi
         0.0, #l_dot
         0.0 #phi_dot
     ], dtype=float)
@@ -39,74 +39,77 @@ def run_simulation(params, T, dt):
     m_p = float(params["payload"]["mass"])
     g   = float(params["environment"]["gravity"])
 
-    # Disable payload effects during tuning
-    m_p_eff = 0.0
-    use_rope = False
-
     # Rotor limits
     T_MAX_ROTOR = float(params.get("actuators", {}).get("max_thrust_per_rotor", 20.0))
     TAU_MAX     = float(params.get("actuators", {}).get("max_pitch_torque", 5.0))
+    TAU_MIN    = -TAU_MAX
     T_MAX_TOTAL = 4.0 * T_MAX_ROTOR
 
-    # Load controller gains
+    # Load controller, gains and output limits
     Kp_x, Ki_x, Kd_x = float(params["pid"]["x"]["Kp"]), float(params["pid"]["x"]["Ki"]), float(params["pid"]["x"]["Kd"])
     u_min_x, u_max_x = float(params["pid"]["x"]["u_min"]), float(params["pid"]["x"]["u_max"])
-   
+    x_controller = PIDController(Kp_x, Ki_x, Kd_x, u_min_x, u_max_x)
+
     Kp_z, Ki_z, Kd_z = float(params["pid"]["z"]["Kp"]), float(params["pid"]["z"]["Ki"]), float(params["pid"]["z"]["Kd"])
     u_min_z, u_max_z = float(params["pid"]["z"]["u_min"]), float(params["pid"]["z"]["u_max"])
-
-    Kp_theta, Kd_theta = float(params["pid"]["theta"]["Kp"]), float(params["pid"]["theta"]["Kd"])
-
-    # Define controllers
-    x_controller = PIDController(Kp_x, Ki_x, Kd_x, u_min_x, u_max_x)
     z_controller = PIDController(Kp_z, Ki_z, Kd_z, u_min_z, u_max_z)
 
-    x_ref = 0.0
-    z_ref = 5.0
+    Kp_theta, Kd_theta = float(params["pid"]["theta"]["Kp"]), float(params["pid"]["theta"]["Kd"])
+    theta_controller = PIDController(Kp_theta, 0.0, Kd_theta, TAU_MIN, TAU_MAX) 
 
-    # --- Future payload control loops (commented for now) ---
-    # phi_controller = PIDController(Kp=1.2, Ki=0.0, Kd=0.2, u_min=-1.5, u_max=1.5)
-    # l_controller   = PIDController(Kp=2.0, Ki=0.0, Kd=0.5, u_min=-1.0, u_max=1.0)
+    Kp_phi, Kd_phi = float(params["pid"]["phi"]["Kp"]), float(params["pid"]["phi"]["Kd"]) 
+    u_min_phi, u_max_phi = float(params["pid"]["phi"]["u_min"]), float(params["pid"]["phi"]["u_max"])
+    phi_controller = PIDController(Kp_phi, 0.0, Kd_phi, u_min_phi, u_max_phi) #no integral: 0 deg is equilibrium point & no cst lateral disturbance
+
+    # Desired references
+    x_ref, z_ref = 4.0, 5.0  # initial position
+    phi_ref = 0.0            # desired payload angle (rad)
 
     # Storage arrays
     time = np.arange(0.0, T, dt)
     quad_traj, payload_traj = [], []
 
     # For plotting time histories
-    x_hist, z_hist, theta_hist = [], [], []
-    x_des_hist, z_des_hist, theta_des_hist = [], [], []
+    x_hist, z_hist, theta_hist, phi_hist = [], [], [], []
+    x_des_hist, z_des_hist, theta_des_hist, phi_des_hist = [], [], [], []
 
     # ----------------------------------------------------------------------
     for t in time:
         # Unpack states
         x_q, z_q, theta, xdot, zdot, thetadot, l, phi, ldot, phidot = state
-        
-        #add step changes in reference position at different times 
-        if t >= 2 and t <= 6:
-            x_ref = 2.0
-            z_ref = 7.0
-        elif t > 6:
-            x_ref = 4.0
-            z_ref = 3.0
-    
 
-        # --- Position control ---
-        # a_x_swing = phi_controller.update(0.0 - phi, dt)
-        # a_x_des = x_controller.update(x_ref - x_q, dt) + a_x_swing
-        a_x_des = x_controller.update(x_ref - x_q, dt)
+        #add step changes in reference position at different times 
+        # if t >= 2.0:
+        #     x_ref = 4.0
+        #     z_ref = 5.0
+        #     #z_ref = 7.0
+        # #elif t > 8:
+        #  #   x_ref = 4.0
+        #   #  z_ref = 5.0
+    
+        # --- Quadcopter Position Control ---
+        a_x_pos = x_controller.update(x_ref - x_q, dt) 
         a_z_des = z_controller.update(z_ref - z_q, dt)
 
+        # --- Payload Swing Control ---
+        a_x_swing = phi_controller.update(phi_ref - phi, dt)
+
+        # Total desired lateral acceleration
+        a_x_des = a_x_pos + a_x_swing # sum contributions to lat. acceleration from position and swing controllers
+
         # Desired pitch from lateral accel
-        theta_des = -np.arctan2(a_x_des, max(g, 1e-6))
+        theta_des = -np.arctan2(a_x_des, max(g, 1e-6)) 
 
         # Desired thrust magnitude (vertical control)
         T_total_des = m_q * (g + a_z_des) / max(np.cos(theta), 0.1)
         T_total_des = np.clip(T_total_des, 0.0, T_MAX_TOTAL)
 
         # Attitude control
-        theta_err = theta_des - theta
-        tau_des = Kp_theta * theta_err - Kd_theta * thetadot
-        tau_des = np.clip(tau_des, -TAU_MAX, TAU_MAX)
+        tau_des = theta_controller.update(theta_des - theta, dt)
+
+        #theta_err = theta_des - theta
+        #tau_des = Kp_theta * theta_err - Kd_theta * thetadot
+        #tau_des = np.clip(tau_des, -TAU_MAX, TAU_MAX)
 
         # --- Mixer ---
         pair_front = 0.5 * T_total_des + 0.5 * tau_des / max(d, 1e-6)
@@ -142,6 +145,8 @@ def run_simulation(params, T, dt):
         x_hist.append(x_q)
         z_hist.append(z_q)
         theta_hist.append(theta)
+        phi_hist.append(phi)
+        phi_des_hist.append(phi_ref)  # always zero
         x_des_hist.append(x_ref)
         z_des_hist.append(z_ref)
         theta_des_hist.append(theta_des)
@@ -154,6 +159,8 @@ def run_simulation(params, T, dt):
         np.array(x_hist),
         np.array(z_hist),
         np.array(theta_hist),
+        np.array(phi_hist),
+        np.array(phi_des_hist),
         np.array(x_des_hist),
         np.array(z_des_hist),
         np.array(theta_des_hist),
@@ -168,7 +175,7 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Config file not found. Searched: {candidates}")
     params = load_params(str(config_file))
 
-    T, dt = 10.0, 0.01
+    T, dt = 15.0, 0.01
     (
         time,
         quad_traj,
@@ -176,12 +183,14 @@ if __name__ == "__main__":
         x_hist,
         z_hist,
         theta_hist,
+        phi_hist,
+        phi_des_hist,
         x_des_hist,
         z_des_hist,
         theta_des_hist,
     ) = run_simulation(params, T, dt)
 
-    # --- Animation ---
+    # --- Animation --- uncomment these lines if you want to produce an mp4 animation
     animate_quadcopter_payload(time, quad_traj, payload_traj, theta_hist, params,
                            filename=anim_path.name, out_dir = anim_path.parent, fps=30)
     
@@ -208,7 +217,7 @@ if __name__ == "__main__":
     plt.close(fig1)
 
     # --- 2. Time History Plots ---
-    fig2, axs2 = plt.subplots(3, 1, figsize=(6, 8), sharex=True)
+    fig2, axs2 = plt.subplots(4, 1, figsize=(6, 8), sharex=True)
     
     # z position
     axs2[0].plot(time, z_hist, label=r"$z_q$")
@@ -231,6 +240,14 @@ if __name__ == "__main__":
     axs2[2].set_xlabel("Time [s]")
     axs2[2].legend()
     axs2[2].grid(True)
+
+    # swing
+    axs2[3].plot(time, np.degrees(phi_hist), label=r"$\phi$ [deg]")
+    axs2[3].plot(time, np.degrees(phi_des_hist), '--', label=r"$\phi_{des}$ [deg]")
+    axs2[3].set_ylabel("Swing, phi [deg]")
+    axs2[3].set_xlabel("Time [s]")
+    axs2[3].legend()
+    axs2[3].grid(True)
 
     fig2.suptitle("Quadcopter Position and Attitude Tracking")
     plt.tight_layout()

@@ -9,8 +9,19 @@ controller:
       u_min: -10.0
   type: pid
 data:
-  n_trajectories: 9
-  sim_time: 20
+  initial_state:
+  - - 1.7213166190998062
+    - -0.12224312049589536
+  - - 2.2531371815723604
+    - 0.3947360581187278
+  - - -2.5498589250729733
+    - 0.9512447032735118
+  - - 1.6407891386670415
+    - 0.5721286105539076
+  - - -2.3366309591134007
+    - -0.09922812420886573
+  n_trajectories: 5
+  sim_time: 5
   standardize: true
   test_ratio: 0.1
   train_ratio: 0.8
@@ -28,10 +39,12 @@ dynamics:
 model:
   dropout: 0.0
   hidden:
-  - 10
-  - 10
+  - 15
+  - 15
   - 4
+  in_dim: 3
   name: mlp
+  out_dim: 1
 seed: 42
 system: pendulum
 train:
@@ -55,7 +68,7 @@ train:
     start_epoch: 0
     steps: 10
   batch_size: 32
-  epochs: 30
+  epochs: 50
   lr: 1e-3
   show_test_progress: false
   show_val_progress: true

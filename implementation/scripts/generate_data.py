@@ -24,7 +24,10 @@ if __name__ == "__main__":
     cps = import_system(cfg["system"])
     
     if animate_flag:
-        animation_path = cps.animate(cfg, trajectory_path=raw_path, fps=30)
+        out_dir = Path("data/raw") / cfg["system"] / "animations"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / (Path(raw_path).stem + ".mp4")
+        animation_path = cps.animate(cfg, trajectory_path=raw_path, out_path=out_path)
         print(f"Animation saved to: {animation_path}")
         
     # save config used for this data to data/raw/<system>/configs/traj_name_from_raw_path.yaml

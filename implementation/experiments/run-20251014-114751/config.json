@@ -27,8 +27,8 @@
     }
   },
   "data": {
-    "n_trajectories": 9,
-    "sim_time": 20,
+    "n_trajectories": 5,
+    "sim_time": 5,
     "train_ratio": 0.8,
     "val_ratio": 0.1,
     "test_ratio": 0.1,
@@ -37,8 +37,8 @@
   "model": {
     "name": "mlp",
     "hidden": [
-      10,
-      10,
+      15,
+      15,
       4
     ],
     "dropout": 0.0,

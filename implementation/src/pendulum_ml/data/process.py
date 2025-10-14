@@ -1,7 +1,8 @@
 from pathlib import Path
 import json, torch, pandas as pd
+from ..utils import import_system
 
-def to_processed(raw_paths, cfg, out_dir="data/processed/pendulum"):
+def to_processed(raw_path, cfg, out_dir="data/processed/pendulum"):
     """ Convert raw CSV trajectory data to processed tensors and save normalization stats.
 
     Args:
@@ -15,11 +16,16 @@ def to_processed(raw_paths, cfg, out_dir="data/processed/pendulum"):
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True) # ensure output directory exists
     
-    df = pd.concat([pd.read_csv(p) for p in raw_paths], ignore_index=True) # combine all CSVs into one DataFrame
+    # load raw CSV data
+    df = pd.read_csv(raw_path)
+    
+    cps = import_system(cfg["system"])
+    num_states = len(cps.STATE_NAMES)
+    num_controls = len(cps.CONTROL_AXES)
     
     # features: theta, theta_dot; target: torque
-    X = torch.tensor(df[["theta","theta_dot"]].values, dtype=torch.float32)
-    y = torch.tensor(df[["torque"]].values, dtype=torch.float32)
+    X = torch.tensor(df[cps.STATE_NAMES + [f"error_{axis}" for axis in cps.CONTROL_AXES]].values, dtype=torch.float32)
+    y = torch.tensor(df[[f"u_{axis}" for axis in cps.CONTROL_AXES]].values, dtype=torch.float32)
 
     # normalize features
     mu = X.mean(0, keepdim=True)

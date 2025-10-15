@@ -27,27 +27,35 @@ def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
     theta_dot0 = rng.uniform(-1.0, 1.0)   # angular velocity
     return np.array([theta0, theta_dot0], dtype=float)
 
-def animate(cfg, trajectory_path, fps=30, out_dir="data/raw"):
+def animate(cfg, trajectory_path, out_path=None):
     """ Create animation of a trajectory in mp4 format.
 
     Args:
         cfg (dict): config dictionary
-        trajectory_path (str or Path): path to trajectory CSV file
-        fps (int, optional): frames per second. Defaults to 30.
-        out_dir (str or Path, optional): output directory. Defaults to "data/raw".
+        trajectory_path (str, Path or np.ndarray): path to trajectory CSV file or trajectory array
+        out_path (str or Path, optional): path to save the output animation file. Defaults to "data/raw/file.mp4".
 
     Returns:
         str: path to the output animation file
     """
-    out_dir = Path(out_dir) / cfg["system"] / "animations"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / (Path(trajectory_path).stem + ".mp4")
-
-    params = validate_params(Params, cfg["dynamics"]["params"])
+    if out_path is None:
+        raise ValueError("Missing argument for animate: out_path")
     
-    # Load trajectory ignoring header and first two columns (traj_id, time)
-    data = np.loadtxt(trajectory_path, delimiter=",", skiprows=1, 
-                      usecols=range(1, 2 + len(STATE_NAMES) + len(CONTROL_AXES)))
+    if isinstance(trajectory_path, (str, Path)):
+        trajectory_path = Path(trajectory_path)
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)  # ensure output directory exists
+        # Load trajectory ignoring header and first two columns (traj_id, time)
+        data = np.loadtxt(trajectory_path, delimiter=",", skiprows=1, 
+                        usecols=range(1, 2 + len(STATE_NAMES) + len(CONTROL_AXES)))
+    elif isinstance(trajectory_path, np.ndarray):
+        data = trajectory_path
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)  # ensure output directory exists
+    else:
+        raise ValueError("trajectory_path should be a file path or a numpy array.")
+        
+    params = validate_params(Params, cfg["dynamics"]["params"])
 
     fig, ax = plt.subplots()
     ax.set_aspect("equal", adjustable="box")

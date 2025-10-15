@@ -125,7 +125,8 @@ def simulate(cfg, out_dir="data/raw"):
         c.reset()  # reset controller state
         
     # Get x0 from config or from dynamics module sampler
-    init_states = _resolve_initial_states(cfg, cps)    
+    init_states = _resolve_initial_states(cfg, cps)
+    cfg = _add_initial_states_to_cfg(cfg, init_states)  # add to cfg for reference    
     
     # Build integrator and time params
     step = rk4_step if cfg["dynamics"]["integrator"]=="rk4" else euler_step # integrator function

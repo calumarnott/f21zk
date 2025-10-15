@@ -31,7 +31,7 @@ def train_adv(cfg):
     """
     Train with optional adversarial training.
     - If cfg.train.adv.enabled == true:
-        * Generate adversarial examples on-the-fly per batch (PGD/FGSM).
+        * Generate adversarial examples on-the-fly per batch (PGD/FGSM/black box attack).
         * mode="replace": use only adversarial loss
         * mode="mix":     loss = mix_alpha * adv_loss + (1-mix_alpha) * clean_loss
         * p: probability that a batch is attacked (curriculum/compute control)
@@ -92,19 +92,28 @@ def train_adv(cfg):
 
     epochs = int(cfg["train"]["epochs"])
 
+    save_k      = int(adv_cfg.get("save_samples", 0))
+    save_every  = int(adv_cfg.get("save_every", 1))
+    save_dir    = (out / "adv_samples")
+    save_dir.mkdir(exist_ok=True, parents=True)
+
     for epoch in range(epochs):
         model.train()
         tr_sum = 0.0; n_tr = 0
         adv_sum = 0.0; clean_sum = 0.0
 
+        saved_this_epoch = 0
+
         pbar = tqdm(loaders["train"], desc=f"train[{epoch+1}/{epochs}]", leave=False)
-        for X, y in pbar:
+        for bidx, (X, y) in pbar:
             X, y = X.to(device), y.to(device)
             opt.zero_grad()
 
             if adv_enabled and epoch >= start_epoch and torch.rand(1).item() <= attack_p:
                 # adv batch
                 X_adv = attack_fn(model, X, y).to(device)
+                X_adv = X_adv.detach() # <-- defensive: ensure no graph on saved tensors
+
                 y_hat_adv = model(X_adv)
                 adv_loss = mse(y_hat_adv, y)
                 if adv_mode == "replace":
@@ -118,6 +127,23 @@ def train_adv(cfg):
                 else:
                     raise ValueError(f"Unknown adv mode: {adv_mode}")
                 adv_sum += float(adv_loss.item()) * X.size(0)
+
+                if (
+                    save_k > 0 and
+                    (epoch % save_every == 0) and
+                    saved_this_epoch < save_k
+                ):
+                    with torch.no_grad():
+                        k = min(save_k - saved_this_epoch, X.size(0))
+                        payload = {
+                            "epoch": int(epoch),
+                            "batch": int(bidx),
+                            "x": X[:k].detach().cpu(),
+                            "x_adv": X_adv[:k].detach().cpu(),
+                            "y": y[:k].detach().cpu(),
+                        }
+                        torch.save(payload, save_dir / f"epoch{epoch:03d}_b{bidx:05d}.pt")
+                        saved_this_epoch += k
             else:
                 # clean batch
                 y_hat = model(X)
@@ -164,7 +190,7 @@ def train_adv(cfg):
             best_val = val_loss
             torch.save(model.state_dict(), best_ckpt.as_posix())
 
-    # ---- Final test (CLEAN) ----
+    # ---- Final test ----
     test_res = evaluate_test(cfg, best_ckpt.as_posix(), run=run, loaders=loaders, show_progress=False)
 
     summary = {

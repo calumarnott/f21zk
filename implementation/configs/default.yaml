@@ -54,11 +54,11 @@ train:
     enabled: false       # turn on adversarial training
     method: "pgd"        # "pgd" or "fgsm"
     norm: "linf"         # "linf" or "l2"
-    eps: 0.03
-    steps: 10            # PGD only; FGSM ignores this
-    alpha: null          # null -> eps/steps
+    eps: 0.05
+    steps: 40            # PGD only; FGSM ignores this
+    alpha: null          # always eps/steps
     p: 1.0               # probability to attack a batch (0..1)
-    mode: "replace"      # "replace" | "mix"
+    mode: "mix"      # "replace" | "mix"
     mix_alpha: 0.5       # if mode="mix": loss = mix_alpha*adv + (1-mix_alpha)*clean
     start_epoch: 0       # wait N epochs before starting attacks (curriculum)
     save_samples: 16     # how many per epoch (0 to disable)config update to save a few adv examples

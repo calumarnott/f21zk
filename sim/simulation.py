@@ -28,7 +28,7 @@ def run_simulation(params, T, dt):
         0.0, #z_q_dot
         0.0, #theta_dot
         params["payload"]["rope_length"], #l
-        -0.18, #phi
+        0.0, #phi
         0.0, #l_dot
         0.0 #phi_dot
     ], dtype=float)

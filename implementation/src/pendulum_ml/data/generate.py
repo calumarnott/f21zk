@@ -152,33 +152,41 @@ def simulate(cfg, out_dir="data/raw"):
         control_steps_counter = 0  # counter for control steps
         
         # --- main simulation loop ---
+        
+        
+        
         while t < T:
             
-            if control_steps_counter % n_ctrl_steps == 0:
-                # Time to compute new control inputs
+            # if cps has method step_simulation, use it
+            if hasattr(cps, "step_simulation"):
+                x, u_dict, err_dict = cps.step_simulation(x, t, controllers, params, step, dt)
+            else:
                 
-                u_dict, err_dict = {}, {}
+                if control_steps_counter % n_ctrl_steps == 0:
+                    # Time to compute new control inputs
+                    
+                    u_dict, err_dict = {}, {}
+                    for axis, ctrl in controllers.items():
+                        # if you have a time-varying reference, setpoints[axis] = reference(axis, t)
+                        # TODO: extend to trajectory tracking error
+                        sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
+                        err = control_error(cps, axis, x, sp)
+                        u = ctrl.update(err, dt_ctrl)    # derivative/integral use control_dt
+                        u_dict[axis]  = float(u)
+                
+                control_steps_counter += 1
+                        
+                # Step the dynamics with current control inputs
+                x = step(x, u_dict, cps.f, params, dt)
+                x[0] = wrap_to_pi(x[0])  # wrap angle theta to [-pi, pi]
+
+                
                 for axis, ctrl in controllers.items():
-                    # if you have a time-varying reference, setpoints[axis] = reference(axis, t)
-                    # TODO: extend to trajectory tracking error
                     sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
                     err = control_error(cps, axis, x, sp)
-                    u = ctrl.update(err, dt_ctrl)    # derivative/integral use control_dt
-                    # err_dict[axis] = float(err)
-                    u_dict[axis]  = float(u)
+                    err_dict[axis] = float(err)
             
-            control_steps_counter += 1
-                    
-            # Step the dynamics with current control inputs
-            x = step(x, u_dict, cps.f, params, dt)
-            x[0] = wrap_to_pi(x[0])  # wrap angle theta to [-pi, pi]
             t += dt
-            
-            for axis, ctrl in controllers.items():
-                sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
-                err = control_error(cps, axis, x, sp)
-                err_dict[axis] = float(err)
-            
             # --- record a row aligned as (state_t, error_t, u_t) ---
             row = {
                 "traj_id": traj_id,

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
                 "theta_dot", "l", "phi", "l_dot", "phi_dot"]
-CONTROL_AXES = ["x", "z", "theta", "phi"]
+CONTROL_AXES = ["x", "z", "theta", "phi", "l"]
 
 
 # --- Leaf-level dataclasses ---
@@ -44,6 +44,71 @@ class Params:
 
 
 
+# cps.step_simulation(x, t, controllers, cfg, params, dt, control_steps_counter, n_ctrl_steps)
+
+def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Params, step: callable,
+                    dt: float) -> (np.ndarray, dict, dict):
+    """ Step the simulation by one time step.
+
+    Args:
+        state (np.ndarray): current state vector
+        t (float): current time
+        controllers (dict): dictionary of controller instances for each control axis
+        cfg (dict): configuration dictionary
+        params (Params): parameters dataclass instance
+        dt (float): time step size
+    Returns:
+        np.ndarray: next state vector
+        dict: control inputs
+        dict: control errors
+    """
+    x_q, z_q, theta, xdot, zdot, thetadot, l, phi, ldot, phidot = state
+    
+    u_dict = {}
+    err_dict = {}
+    
+    
+    # Desired references
+    x_ref, z_ref = 4.0, 5.0  # initial position
+    phi_ref = 0.0            # desired payload angle (rad)
+    
+    
+    # --- Quadcopter Position Control ---
+    a_x_pos = controllers["x"].update(x_ref - x_q, dt) 
+    a_z_des = controllers["z"].update(z_ref - z_q, dt)
+    err_dict["x"] = float(x_ref - x_q)
+    
+    # --- Payload Swing Control ---
+    a_x_swing = controllers["phi"].update(phi_ref - phi, dt)
+
+    # Total desired lateral acceleration
+    a_x_des = a_x_pos + a_x_swing # sum contributions to lat. acceleration from position and swing controllers
+    
+    
+    # Desired pitch from lateral accel
+    theta_des = -np.arctan2(a_x_des, max(params.environment.gravity, 1e-6)) 
+    
+    # Attitude control
+    tau_des = controllers["theta"].update(theta_des - theta, dt)
+
+    u_dict["x"] = float(a_x_pos)
+    u_dict["z"] = float(a_z_des)
+    u_dict["theta"] = float(tau_des)
+    u_dict["phi"] = float(a_x_swing)
+    u_dict["l"] = 0.0  # no winch control for now
+
+    # Integrate dynamics
+    state = step(state, u_dict, f, params, dt)
+    
+    err_dict["x"] = float(x_ref - x_q)
+    err_dict["z"] = float(z_ref - z_q)
+    err_dict["theta"] = float(theta_des - theta)
+    err_dict["phi"] = float(phi_ref - phi)
+    err_dict["l"] = 0.0
+
+
+    return state, u_dict, err_dict
+
 # Unit vectors based on rope swing angle
 def rope_vectors(phi):
     """Return unit vector along rope (quad -> payload) and tangential vector."""
@@ -59,14 +124,38 @@ def f(state: np.ndarray, control: dict, params: Params) -> np.ndarray:
     State vector:
       [xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot]
     Control vector:
-      [T1, T2, T3, T4, u_l]
+      u_dict 
     
     Returns:
         dx: time derivative of state vector (10,)
     """
     # Unpack state
     xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot = state
-    T1, T2, T3, T4, u_l = control # TODO: change to dict access
+
+    a_x_pos = control["x"]
+    a_z_des = control["z"]
+    tau_des = control["theta"]
+    a_x_swing = control["phi"]
+    u_l = control["l"]
+
+    # --- Mixer ---
+    # Desired thrust magnitude (vertical control)
+    T_total_des = params.quad.mass * (params.environment.gravity + a_z_des) / max(np.cos(theta), 0.1)
+    T_total_des = np.clip(T_total_des, 0.0, params.actuators.max_thrust * 4.0)
+
+    pair_front = 0.5 * T_total_des + 0.5 * tau_des / max(params.quad.arm_length, 1e-6)
+    pair_rear  = 0.5 * T_total_des - 0.5 * tau_des / max(params.quad.arm_length, 1e-6)
+    T1 = T2 = 0.5 * pair_front
+    T3 = T4 = 0.5 * pair_rear
+
+    T1 = np.clip(T1, 0.0, params.actuators.max_thrust)
+    T2 = np.clip(T2, 0.0, params.actuators.max_thrust)
+    T3 = np.clip(T3, 0.0, params.actuators.max_thrust)
+    T4 = np.clip(T4, 0.0, params.actuators.max_thrust)
+    
+    # Recompute totals (for consistency)
+    T_total = T1 + T2 + T3 + T4
+    tau = params.quad.arm_length * ((T1 + T2) - (T3 + T4))
 
     # Params
     m_q = params.quad.mass

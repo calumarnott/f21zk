@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
                 "theta_dot", "l", "phi", "l_dot", "phi_dot"]
-CONTROL_AXES = ["x", "z", "theta"]
+CONTROL_AXES = ["x", "z", "theta", "phi"]
 
 
 # --- Leaf-level dataclasses ---
@@ -26,6 +26,12 @@ class EnvironmentParams:
 class WinchParams:
     model: str
     omega: float = 0.0
+    
+@dataclass
+class ActuatorParams:
+    max_thrust: float
+    max_pitch_torque: float
+    min_pitch_torque: float
 
 # --- Top-level dataclass that groups them ---
 @dataclass
@@ -34,6 +40,7 @@ class Params:
     payload: PayloadParams
     environment: EnvironmentParams
     winch: WinchParams
+    actuators: ActuatorParams
 
 
 

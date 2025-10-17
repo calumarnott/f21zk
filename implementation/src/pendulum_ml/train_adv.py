@@ -104,7 +104,8 @@ def train_adv(cfg):
 
         saved_this_epoch = 0
 
-        pbar = tqdm(loaders["train"], desc=f"train[{epoch+1}/{epochs}]", leave=False)
+        # pbar = tqdm(loaders["train"], desc=f"train[{epoch+1}/{epochs}]", leave=False)
+        pbar = tqdm(enumerate(loaders["train"]), total=len(loaders["train"]), desc=f"train[{epoch+1}/{epochs}]", leave=False)
         for bidx, (X, y) in pbar:
             X, y = X.to(device), y.to(device)
             opt.zero_grad()

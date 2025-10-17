@@ -61,7 +61,7 @@ train:
     mode: "replace"      # "replace" | "mix"
     mix_alpha: 0.5       # if mode="mix": loss = mix_alpha*adv + (1-mix_alpha)*clean
     start_epoch: 0       # wait N epochs before starting attacks (curriculum)
-    save_samples: 16     # how many per epoch (0 to disable)
+    save_samples: 16     # how many per epoch (0 to disable)config update to save a few adv examples
     save_every: 1        # epochs
     clip:
       enabled: false     # clip adv inputs to ranges (helpful if states have known bounds)

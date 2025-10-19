@@ -29,6 +29,8 @@ def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
     """
     raise NotImplementedError("State sampler 'sample_x0' must be implemented in dynamics/<system_name>.py")
 
+def animate():
+    return NotImplementedError("Animation function 'animate' must be implemented in dynamics/<system_name>.py")
 
 def f(state: np.ndarray, control: np.ndarray, params: dict) -> np.ndarray:
     """ Dynamics function.

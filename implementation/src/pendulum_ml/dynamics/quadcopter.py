@@ -1,5 +1,9 @@
 import numpy as np
 from dataclasses import dataclass
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from pathlib import Path
+from ..dynamics.base import validate_params
 
 STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
                 "theta_dot", "l", "phi", "l_dot", "phi_dot"]
@@ -108,6 +112,150 @@ def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Para
 
 
     return state, u_dict, err_dict
+
+def animate(cfg, trajectory_path, out_path=None):
+    """ Create animation of a trajectory in mp4 format.
+
+    Args:
+        cfg (dict): config dictionary
+        trajectory_path (str, Path or np.ndarray): path to trajectory CSV file or trajectory array
+        out_path (str or Path, optional): path to save the output animation file. Defaults to "data/raw/file.mp4".
+
+    Returns:
+        str: path to the output animation file
+    """
+    
+    if out_path is None:
+        raise ValueError("Missing argument for animate: out_path")
+    
+    if isinstance(trajectory_path, (str, Path)):
+        trajectory_path = Path(trajectory_path)
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)  # ensure output directory exists
+        # Load trajectory ignoring header and first column (traj_id)
+        data = np.loadtxt(trajectory_path, delimiter=",", skiprows=1, 
+                        usecols=range(1, 2 + len(STATE_NAMES) + len(CONTROL_AXES)))
+    elif isinstance(trajectory_path, np.ndarray):
+        data = trajectory_path
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)  # ensure output directory exists
+    else:
+        raise ValueError("trajectory_path should be a file path or a numpy array.")
+        
+    params = validate_params(Params, cfg["dynamics"]["params"])
+
+    
+    d = params.quad.arm_length
+    
+    # Extract trajectories
+    time = data[:, 0]
+    quad_traj = data[:, 1:3]  # xq, zq
+    theta_hist = data[:, 3]  # theta
+    l_hist = data[:, 6]      # l
+    phi_hist = data[:, 7]    # phi
+        
+
+    # Figure setup
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("z [m]")
+    ax.grid(True)
+    ax.set_title("Quadcopter + Payload Animation")
+
+    # Axis limits
+    margin = 2.0
+    xmin, xmax = quad_traj[:, 0].min() - margin, quad_traj[:, 0].max() + margin
+    zmin, zmax = quad_traj[:, 1].min() - margin, quad_traj[:, 1].max() + margin
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(zmin, zmax)
+
+    # Artists
+    quad_body, = ax.plot([], [], lw=2.5, color='k')
+    arm_line, = ax.plot([], [], lw=2, color='gray')
+    rotor_L, = ax.plot([], [], 'o', color='C0', ms=8)
+    rotor_R, = ax.plot([], [], 'o', color='C0', ms=8)
+    rope_line, = ax.plot([], [], color='brown', lw=1.5)
+    payload, = ax.plot([], [], 'o', color='red', ms=10)
+    time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes)
+
+    # Geometry constants
+    body_w, body_h = 3*d, 2*d
+    arm_half = 4*d
+
+    # --- Initialization ---
+    def init():
+        quad_body.set_data([], [])
+        arm_line.set_data([], [])
+        rotor_L.set_data([], [])
+        rotor_R.set_data([], [])
+        rope_line.set_data([], [])
+        payload.set_data([], [])
+        time_text.set_text("")
+        return quad_body, arm_line, rotor_L, rotor_R, rope_line, payload, time_text
+
+    # --- Update function ---
+    def update(i):
+        xq, zq = quad_traj[i]
+        phi = phi_hist[i]
+        l = l_hist[i]
+        theta = theta_hist[i]
+        xp = xq + l * np.sin(phi)
+        zp = zq - l * np.cos(phi)
+
+        # Rotation matrix (body frame to world)
+        R = np.array([
+            [np.cos(theta), -np.sin(theta)],
+            [np.sin(theta),  np.cos(theta)]
+        ])
+
+        # Body rectangle (local coords)
+        corners = np.array([
+            [-body_w/2, -body_h/2],
+            [ body_w/2, -body_h/2],
+            [ body_w/2,  body_h/2],
+            [-body_w/2,  body_h/2],
+            [-body_w/2, -body_h/2],
+        ])
+        corners_rot = (R @ corners.T).T + np.array([xq, zq])
+        quad_body.set_data(corners_rot[:, 0], corners_rot[:, 1])
+
+        # Arms
+        arm_pts = np.array([[-arm_half, 0], [arm_half, 0]])
+        arm_rot = (R @ arm_pts.T).T + np.array([xq, zq])
+        arm_line.set_data(arm_rot[:, 0], arm_rot[:, 1])
+        rotor_L.set_data([arm_rot[0, 0]], [arm_rot[0, 1]])
+        rotor_R.set_data([arm_rot[1, 0]], [arm_rot[1, 1]])
+
+
+        # Rope and payload
+        rope_line.set_data([xq, xp], [zq, zp])
+        payload.set_data([xp], [zp])
+
+        time_text.set_text(f"t = {time[i]:.2f} s")
+        return quad_body, arm_line, rotor_L, rotor_R, rope_line, payload, time_text
+
+    dt = cfg["dynamics"].get("dt", 0.01)  # default dt if not specified
+    # --- Animation ---
+    anim = animation.FuncAnimation(
+        fig, update, frames=len(time),
+        init_func=init, blit=True, interval=1000*dt
+    )
+
+    # Save or display
+    print(f'Saving animation to {out_path} ...')
+    if out_path.suffix.lower() == ".mp4":
+        anim.save(out_path, writer="ffmpeg", fps=1./dt)
+        print(f'Animation saved to {out_path}')
+    elif out_path.suffix.lower() == ".gif":
+        anim.save(out_path, writer="pillow", fps=1./dt)
+        print(f'Animation saved to {out_path}')
+    else:
+        print(f"Unsupported extension: {out_path.suffix}, showing instead.")
+        plt.show()
+
+    plt.close(fig)
+    return str(out_path)
 
 # Unit vectors based on rope swing angle
 def rope_vectors(phi):

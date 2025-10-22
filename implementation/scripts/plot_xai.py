@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from pendulum_ml.models.registry import make_model
-from pendulum_ml.verification.attack import make_attack
+from pendulum_ml.verification.attacks import make_attack_fn
 from pendulum_ml.verification import xai
 
 
@@ -64,7 +64,7 @@ else:
     print(f"[WARN] No checkpoint found at {ckpt}")
 
 model.eval()
-feature_names = cfg["model"].get("features", ["theta", "omega"])
+feature_names = cfg["model"].get("features", ["theta", "omega", "length"])
 
 # =====================================================
 # 3. Test data
@@ -72,7 +72,8 @@ feature_names = cfg["model"].get("features", ["theta", "omega"])
 def make_test_data(n=200):
     theta = np.linspace(-0.3, 0.3, n)
     omega = np.linspace(-1.0, 1.0, n)
-    X = np.stack([theta, omega], axis=1)
+    length = np.ones(n) * 1.0   # or some constant value
+    X = np.stack([theta, omega,length], axis=1)
     return torch.tensor(X, dtype=torch.float32).to(device)
 
 X = make_test_data()
@@ -80,7 +81,7 @@ X = make_test_data()
 # =====================================================
 # 4. Attack
 # =====================================================
-attack_fn = make_attack(
+attack_fn = make_attack_fn(
     method=args.attack,
     eps=args.eps,
     steps=args.steps,

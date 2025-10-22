@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable
 import json
 
 import torch
@@ -18,6 +18,7 @@ def evaluate(
     split: str = "val",
     save_preds_csv: Optional[Path] = None,
     show_progress: bool = True,
+    attack_fn: Optional[Callable[[torch.nn.Module, torch.Tensor, torch.Tensor], torch.Tensor]] = None,
 ) -> Dict[str, Any]:
     """ Evaluate model on a given data loader.
 
@@ -50,6 +51,11 @@ def evaluate(
     for X, y in iterable:
         
         X, y = X.to(device), y.to(device)
+
+        # apply adversarial attack if provided
+        if attack_fn is not None:
+            # attack_fn returns perturbed X (should be detached, same device)
+            X = attack_fn(model, X, y)
         
         y_hat = model(X) # prediction
         
@@ -140,6 +146,7 @@ def evaluate_test(
     run: Optional[str] = None,
     loaders: Optional[Dict[str, Any]] = None,
     show_progress: bool = False,
+    attack_cfg: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """ Evaluate a model checkpoint on the 'test' split.
     If run is provided, saves:
@@ -173,13 +180,33 @@ def evaluate_test(
     if loaders is None:
         loaders = build_loaders(cfg)
 
+    # build attack function if requested
+    attack_fn = None
+    if attack_cfg is None:
+        # fallback to cfg["attack"] if present
+        attack_cfg = cfg.get("attack", None)
+
+    if attack_cfg:
+        # use your attacks factory (adjust import / name as needed)
+        from .verification.attacks import make_attack_fn
+        attack_fn = make_attack_fn(
+            method=str(attack_cfg.get("method", "pgd")),
+            norm=str(attack_cfg.get("norm", "linf")),
+            eps=float(attack_cfg.get("eps", 0.03)),
+            steps=int(attack_cfg.get("steps", 10)) if attack_cfg.get("steps") is not None else None,
+            alpha=attack_cfg.get("alpha", None),
+            input_clip=None,
+        )
+
     # prepare output directory and prediction CSV path if run is specified
     outdir = Path("experiments") / run if run else None
     preds_csv = (outdir / "predictions_test.csv") if outdir else None
     
     # evaluate on test set
-    res = evaluate(model, loaders["test"], device=device, split="test", save_preds_csv=preds_csv, show_progress=show_progress)
+    # res = evaluate(model, loaders["test"], device=device, split="test", save_preds_csv=preds_csv, show_progress=show_progress)
+    res = evaluate(model, loaders["test"], device=device, split="test", save_preds_csv=preds_csv, show_progress=show_progress, attack_fn=attack_fn)
 
+    
     # save results to JSON if run is specified
     if outdir:
         outdir.mkdir(parents=True, exist_ok=True)

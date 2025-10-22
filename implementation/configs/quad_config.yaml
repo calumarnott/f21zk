@@ -2,36 +2,78 @@ seed: 42
 device: "cpu"  # will use "cuda" if available, don't change
 
 # system dynamics parameters
-system: "pendulum"
+system: "quadcopter"
 dynamics:
-  params:
-    m: 2.
-    l: 1.
-    c: 0.0
-    g: 9.81
   dt: 0.01
   control_dt: 0.01 # controller update period (should be >= dt and a multiple of dt)
   integrator: "rk4"
+  params:
+    quad:
+      mass: 1.5          # kg
+      inertia: 0.03      # kg*m^2 (pitch inertia)
+      arm_length: 0.25   # m (distance from COM to rotor)
+    payload:
+      mass: 0.25          # kg
+      rope_length: 1.0   # m (initial length)
+    environment:
+      gravity: 9.81      # m/s^2
+    winch:
+      model: "algebraic" # options: algebraic | first_order
+      omega: 10.0        # [1/s] if first_order model used
+    actuators:
+      max_thrust: 20.0  # N per rotor
+      max_pitch_torque: 5.0  # Nm
+      min_pitch_torque: -5.0  # Nm
+
 
 controller:
   type: "pid"
   pid:
-    # One axis for pendulum. Later you can add more keys for multi-axis systems.
-    theta:
-      Kp: 10.0
-      Ki: 0.0
-      Kd: 10.0
+    x:
+      Kp: 8 
+      Ki: 0
+      Kd: 12
+      u_min: -10.0
+      u_max: 10.0
+      # setpoint: 0.0
+
+    z:
+      Kp: 40.
+      Ki: 5 
+      Kd: 10 
       u_min: -10.0
       u_max: 10.0
       setpoint: 0.0
 
+    theta:
+      Kp: 30 
+      Ki: 0
+      Kd: 4 
+      u_min: -5.0
+      u_max: 5.0
+
+    phi:
+      Kp: 30.
+      Ki: 0
+      Kd: 4. 
+      u_min: -10.0
+      u_max: 10.0
+
+    l:
+      Kp: 0.
+      Ki: 0.
+      Kd: 0. 
+      u_min: 0.0
+      u_max: 0.0
+
 # dataset parameters
 data:
-  n_trajectories: 5
-  # initial_state:
+  n_trajectories: 1
+  initial_state:
+    - [-0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] # xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot
   #   - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
   #   # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)
-  sim_time: 5 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
+  sim_time: 20 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1
@@ -40,13 +82,13 @@ data:
 # model parameters
 model:
   name: "mlp"
-  hidden: [15, 15, 4] # hidden layer sizes
+  hidden: [128, 128, 128]
   dropout: 0.0
 
 # training parameters
 train:
   batch_size: 32
-  epochs: 50
+  epochs: 30
   lr: 1e-3
   show_val_progress: true
   show_test_progress: false

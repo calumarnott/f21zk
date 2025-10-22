@@ -151,8 +151,8 @@ def animate(cfg, trajectory_path, out_path=None):
     time = data[:, 0]
     quad_traj = data[:, 1:3]  # xq, zq
     theta_hist = data[:, 3]  # theta
-    l_hist = data[:, 6]      # l
-    phi_hist = data[:, 7]    # phi
+    l_hist = data[:, 7]      # l
+    phi_hist = data[:, 8]    # phi
         
 
     # Figure setup
@@ -199,8 +199,6 @@ def animate(cfg, trajectory_path, out_path=None):
         xq, zq = quad_traj[i]
         phi = phi_hist[i]
         l = l_hist[i]
-        print(f"Frame {i}: xq={xq:.2f}, zq={zq:.2f}, l={l:.2f}, phi={phi:.2f}")
-        assert l == 1.0, "Rope length should be constant at 1.0 m in this animation."
         theta = theta_hist[i]
         xp = xq + l * np.sin(phi)
         zp = zq - l * np.cos(phi)

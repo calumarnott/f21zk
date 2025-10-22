@@ -11,7 +11,7 @@ conda activate pendulum-ml
 
 
 # Generate data from dynamics
-python scripts/generate_data.py 
+python scripts/generate_data.py --config configs/<config_filename>.yaml --animate
 
 # Train a baseline model (add an experiment name)
 python scripts/train.py --config configs/default.yaml --set train.lr=1e-3 train.epochs=20 --exp baseline-$(date +%Y%m%d-%H%M)
@@ -20,7 +20,7 @@ python scripts/train.py --config configs/default.yaml --set train.lr=1e-3 train.
 python scripts/plot_metrics.py --run experiments/<your-run-id>
 
 # Evaluate the model
-python scripts/evaluate.py --run <your-run-id>
+python scripts/eval.py --run <your-run-id>
 
 # Add new Cyber Physical System (CPS)
 1. Add a new dynamics file in pendulum_ml/dynamics

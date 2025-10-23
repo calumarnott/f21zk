@@ -54,7 +54,7 @@ train:
     enabled: false       # turn on adversarial training
     method: "pgd"        # "pgd" or "fgsm"
     norm: "linf"         # "linf" or "l2"
-    eps: 0.05
+    eps: 0.1
     steps: 40            # PGD only; FGSM ignores this
     alpha: null          # always eps/steps
     p: 1.0               # probability to attack a batch (0..1)

@@ -14,27 +14,25 @@ def explain_lime(model, X_ref, feature_names, num_features=None, mode="regressio
         discretize_continuous=False, verbose=False
     )
 
-def lime_explain_instance(model, explainer, x, num_features=2):
-    """
-    Explain a single instance using LIME. Handles regression outputs safely.
-    """
+def lime_explain_instance(model, explainer, x, num_features=5, output_idx=None):
+    """Explain a single input sample (x) for one output dimension."""
     def model_predict(X_numpy):
         X_t = torch.tensor(X_numpy, dtype=torch.float32)
         with torch.no_grad():
-            # Flatten output for regression (avoid shape (n,1))
-            y_pred = model(X_t).cpu().numpy().reshape(-1)
+            y_pred = model(X_t).cpu().numpy()
+        # Handle multi-output regression
+        if y_pred.ndim == 2 and output_idx is not None:
+            y_pred = y_pred[:, output_idx]
+        elif y_pred.ndim == 2:  # no output_idx given, fallback to first output
+            y_pred = y_pred[:, 0]
         return y_pred
 
     exp = explainer.explain_instance(
-        x.cpu().numpy(), model_predict, num_features=num_features
+        x.cpu().numpy(),
+        model_predict,
+        num_features=num_features
     )
-
-    # Handle regression mode (no explicit class labels)
-    if isinstance(exp.local_exp, dict):
-        key = next(iter(exp.local_exp))  # get whatever key exists (usually 1 or 0)
-        return exp.local_exp[key]
-    else:
-        return exp.as_list()
+    return exp.as_list()
 
 
 def integrated_gradients(model, x, baseline=None, steps=50):

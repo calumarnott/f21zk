@@ -35,7 +35,7 @@ controller:
       Kd: 12
       u_min: -10.0
       u_max: 10.0
-      # setpoint: 0.0
+      setpoint: 4.0
 
     z:
       Kp: 40.
@@ -43,7 +43,7 @@ controller:
       Kd: 10 
       u_min: -10.0
       u_max: 10.0
-      setpoint: 0.0
+      setpoint: 5.0
 
     theta:
       Kp: 30 
@@ -51,6 +51,7 @@ controller:
       Kd: 4 
       u_min: -5.0
       u_max: 5.0
+      setpoint: 0.0
 
     phi:
       Kp: 30.
@@ -91,13 +92,13 @@ data:
 # model parameters
 model:
   name: "mlp"
-  hidden: [128, 128, 128]
-  dropout: 0.0
+  hidden: [128, 256, 256, 128]
+  dropout: 0.1
 
 # training parameters
 train:
   batch_size: 32
-  epochs: 30
+  epochs: 80
   lr: 1e-3
   show_val_progress: true
   show_test_progress: false

@@ -82,11 +82,11 @@ def train(cfg):
             
             # update progress bar
             pbar.set_postfix({
-                "batch_mse": f"{batch_loss:.6f}",
-                "avg_mse": f"{train_loss/(pbar.n+1):.6f}"
+                "batch_mse": f"{batch_loss:.6f}", 
+                "avg_mse": f"{train_loss/(pbar.n + bs):.6f}"
             })
-            
-            
+
+
         train_loss /= len(loaders["train"].dataset) # average training loss accross all samples
 
         # ---- Validate (in memory, no checkpoint I/O) ----

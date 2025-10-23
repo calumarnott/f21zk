@@ -7,7 +7,8 @@ from ..dynamics.base import validate_params
 
 STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
                 "theta_dot", "l", "phi", "l_dot", "phi_dot"]
-CONTROL_AXES = ["x", "z", "theta", "phi", "l"]
+# CONTROL_AXES = ["x", "z", "theta", "phi", "l"]
+CONTROL_AXES = ["x", "z", "theta", "phi"]
 
 
 # --- Leaf-level dataclasses ---
@@ -99,7 +100,7 @@ def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Para
     u_dict["z"] = float(a_z_des)
     u_dict["theta"] = float(tau_des)
     u_dict["phi"] = float(a_x_swing)
-    u_dict["l"] = 0.0  # no winch control for now
+    # u_dict["l"] = 0.0  # no winch control for now
 
     # Integrate dynamics
     state = step(state, u_dict, f, params, dt)
@@ -108,7 +109,7 @@ def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Para
     err_dict["z"] = float(z_ref - z_q)
     err_dict["theta"] = float(theta_des - theta)
     err_dict["phi"] = float(phi_ref - phi)
-    err_dict["l"] = 0.0
+    # err_dict["l"] = 0.0
 
 
     return state, u_dict, err_dict
@@ -284,7 +285,8 @@ def f(state: np.ndarray, control: dict, params: Params) -> np.ndarray:
     a_z_des = control["z"]
     tau_des = control["theta"]
     a_x_swing = control["phi"]
-    u_l = control["l"]
+    # u_l = control["l"]
+    u_l = 0.0  # no winch control for now
 
     # --- Mixer ---
     # Desired thrust magnitude (vertical control)

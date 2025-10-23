@@ -60,6 +60,59 @@ if __name__ == "__main__":
     trajectory = generate_trajectory_from_NN_controller(cfg, cps, model, initial_states)
     
     
+    #################################
+    ### Create plot for quadrotor ###
+    #################################
+
+    # Make three plots: x vs time, z vs time and phi vs time for each of the trajectories
+    # Make one image with three subplots for each trajectory
+    # Make plot in blue and the setpoint of each (x=4, z=5, phi=0) in orange dashed line
+    import matplotlib.pyplot as plt
+    num_trajectories = initial_states.shape[0]
+    time = trajectory[:, 0].reshape(num_trajectories, -1)
+    x = trajectory[:, 1].reshape(num_trajectories, -1)
+    z = trajectory[:, 2].reshape(num_trajectories, -1)
+    phi = trajectory[:, 8].reshape(num_trajectories, -1)
+    
+    for i in range(num_trajectories):
+        fig, axs = plt.subplots(3, 1, figsize=(8, 12))
+        
+        # x vs time
+        axs[0].plot(time[i], x[i], label='x (position)', color='blue')
+        axs[0].axhline(y=4.0, color='orange', linestyle='--', label='x setpoint')
+        axs[0].set_title('x vs Time')
+        axs[0].set_xlabel('Time (s)')
+        axs[0].set_ylabel('x (m)')
+        axs[0].legend()
+        axs[0].grid()
+        
+        # z vs time
+        axs[1].plot(time[i], z[i], label='z (altitude)', color='blue')
+        axs[1].axhline(y=5.0, color='orange', linestyle='--', label='z setpoint')
+        axs[1].set_title('z vs Time')
+        axs[1].set_xlabel('Time (s)')
+        axs[1].set_ylabel('z (m)')
+        axs[1].legend()
+        axs[1].grid()
+        
+        # phi vs time
+        axs[2].plot(time[i], phi[i], label='phi (roll angle)', color='blue')
+        axs[2].axhline(y=0.0, color='orange', linestyle='--', label='phi setpoint')
+        axs[2].set_title('phi vs Time')
+        axs[2].set_xlabel('Time (s)')
+        axs[2].set_ylabel('phi (rad)')
+        axs[2].legend()
+        axs[2].grid()
+        
+        plt.tight_layout()
+        plot_path = out_dir / f"trajectory_{i+1}_plots.png"
+        plt.savefig(plot_path)
+        plt.close()
+        print(f"Plots saved to {plot_path}")
+
+
+    ########################################
+
     out_path = cps.animate(cfg, trajectory, out_path=out_path)
     print(f"Animation saved to {out_path}")
     

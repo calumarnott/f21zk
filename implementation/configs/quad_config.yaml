@@ -92,13 +92,13 @@ data:
 # model parameters
 model:
   name: "mlp"
-  hidden: [128, 256, 256, 128]
-  dropout: 0.1
+  hidden: [128, 128]
+  dropout: 0.0
 
 # training parameters
 train:
   batch_size: 32
-  epochs: 80
+  epochs: 100
   lr: 1e-3
   show_val_progress: true
   show_test_progress: false

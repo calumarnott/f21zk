@@ -28,7 +28,7 @@ p.add_argument("--run", required=True, help="<run> id (in experiments/<run>)")
 p.add_argument("--attack", default="pgd", help="Attack method (pgd, fgsm, etc.)")
 p.add_argument("--eps", type=float, default=0.02)
 p.add_argument("--steps", type=int, default=10)
-p.add_argument("--alpha", type=float, default=0.005)
+# p.add_argument("--alpha", type=float, default=0.005)
 p.add_argument("--verbose", action="store_true", help="Show Boston-style diagnostics for one sample/output")
 args = p.parse_args()
 
@@ -102,14 +102,16 @@ print(f"[INFO] Loaded real test set: X={X.shape}, Y={Y.shape}")
 # =====================================================
 # 4. Attack setup
 # =====================================================
+alpha=args.eps/max(1, args.steps)
+
 attack_fn = make_attack_fn(
     method=args.attack,
     eps=args.eps,
     steps=args.steps,
-    alpha=args.alpha,
+    alpha=alpha,
     norm="linf",
 )
-print(f"[INFO] Using attack: {args.attack.upper()} (eps={args.eps}, steps={args.steps}, alpha={args.alpha})")
+print(f"[INFO] Using attack: {args.attack.upper()} (eps={args.eps}, steps={args.steps}, alpha={alpha})")
 
 # =====================================================
 # 5. Plotting functions

@@ -1,0 +1,14 @@
+{
+  "best_val": 0.011364567109202552,
+  "test_mse": 0.012512629603507876,
+  "test_mae": 0.01745815386167831,
+  "sizes": {
+    "train": 14400,
+    "val": 1800,
+    "test": 1800
+  },
+  "ckpt": "models/checkpoints/adv_model.pt",
+  "device": "cpu",
+  "adv_enabled": true,
+  "adv_mode": "mix"
+}

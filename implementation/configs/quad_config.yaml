@@ -1,5 +1,5 @@
 seed: 42
-device: "cpu"  # will use "cuda" if available, don't change
+device: "cpu"  # will use "cuda" or "mps" if available, don't change
 
 # system dynamics parameters
 system: "quadcopter"
@@ -71,7 +71,7 @@ controller:
 data:
   n_trajectories: 9
   initial_state:
-    - [-0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] # xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot
+    - [0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] # xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot
     - [ 2.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 ]
     - [ -2.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 ]
     - [ 1.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 ]
@@ -92,7 +92,7 @@ data:
 # model parameters
 model:
   name: "mlp"
-  hidden: [128, 128]
+  hidden: [128, 128, 128]
   dropout: 0.0
 
 # training parameters
@@ -128,9 +128,9 @@ verify:
   alpha: null
   n_samples: 256
 
-features: [
-  "x", "z", "theta",
-  "xq_dot", "zq_dot", "theta_dot",
-  "l", "phi", "l_dot", "phi_dot", "u_x","u_z","u_theta","u_phi","u_l",
-  "error_x", "error_z", "error_theta", "error_phi", "error_l"
-]
+# features: [
+#   "x", "z", "theta",
+#   "xq_dot", "zq_dot", "theta_dot",
+#   "l", "phi", "l_dot", "phi_dot", "u_x","u_z","u_theta","u_phi","u_l",
+#   "error_x", "error_z", "error_theta", "error_phi", "error_l"
+# ]

@@ -83,7 +83,7 @@ data:
   #   - [ 0.0,
   #   - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
   #   # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)
-  sim_time: 10 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
+  sim_time: 20 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1

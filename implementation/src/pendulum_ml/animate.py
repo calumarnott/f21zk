@@ -92,8 +92,7 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                     
                 x_input = np.concatenate([x, [err_dict[axis] for axis in cps.CONTROL_AXES]], axis=0)
                 x_traj = np.concatenate([[t], x_input], axis=0)   
-                
-                print(x_traj)
+
 
                 trajectory[k*num_steps + i] = x_traj  # state + error
                 

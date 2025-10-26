@@ -264,13 +264,23 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
         
         # first plot all trajectories in one figure with subplots
         fig, axs = plt.subplots(3, 1, figsize=(8, 12))
+
+        time = data[:, 0].reshape(num_trajectories, -1)
+        x = data[:, 1].reshape(num_trajectories, -1)
+        z = data[:, 2].reshape(num_trajectories, -1)
+        phi = data[:, 8].reshape(num_trajectories, -1)
         
-        time = data[:, 0]
-        x = data[:, 1]
-        z = data[:, 2]
-        phi = data[:, 8]
+        for i in range(num_trajectories):
+            if i == 0:
+                axs[0].plot(time[i], x[i], label='x (position)', color='blue')
+                axs[1].plot(time[i], z[i], label='z (altitude)', color='blue')
+                axs[2].plot(time[i], phi[i], label='phi (payload angle)', color='blue')
+            else:
+                axs[0].plot(time[i], x[i], color='blue')
+                axs[1].plot(time[i], z[i], color='blue')
+                axs[2].plot(time[i], phi[i], color='blue')
+
         # x vs time
-        axs[0].plot(time, x, label='x (position)', color='blue')
         axs[0].axhline(y=4.0, color='orange', linestyle='--', label='x setpoint')
         axs[0].set_title('x vs Time')
         axs[0].set_xlabel('Time (s)')
@@ -279,7 +289,6 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
         axs[0].grid()
         
         # z vs time
-        axs[1].plot(time, z, label='z (altitude)', color='blue')
         axs[1].axhline(y=5.0, color='orange', linestyle='--', label='z setpoint')
         axs[1].set_title('z vs Time')
         axs[1].set_xlabel('Time (s)')
@@ -288,20 +297,22 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
         axs[1].grid()
         
         # phi vs time
-        axs[2].plot(time, phi, label='phi (payload angle)', color='blue')
         axs[2].axhline(y=0.0, color='orange', linestyle='--', label='phi setpoint')
         axs[2].set_title('phi vs Time')
         axs[2].set_xlabel('Time (s)')
         axs[2].set_ylabel('phi (rad)')
         axs[2].legend()
         axs[2].grid()
-        
+            
         plt.tight_layout()
         # output path wihout .mp4 or .gif + _all_trajectories.png
         plot_path = out_path.parent / f"{out_path.stem}_all_trajectories.png"
         plt.savefig(plot_path)
         plt.close()
         print(f"All trajectories plot saved to {plot_path}")
+        
+        
+        # then plot each trajectory separately
 
         time = data[:, 0].reshape(num_trajectories, -1)
         x = data[:, 1].reshape(num_trajectories, -1)

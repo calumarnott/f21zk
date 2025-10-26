@@ -9,7 +9,6 @@ conda env create -f environment.yml
 conda activate pendulum-ml
 
 
-
 # Generate data from dynamics
 python scripts/generate_data.py --config configs/<config_filename>.yaml --animate
 

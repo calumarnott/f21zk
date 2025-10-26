@@ -15,7 +15,8 @@ dependencies:
   - pytorch>=2.2
   - setuptools>=68
   - wheel
+  - lime==0.2.0.1
+  - captum
+  - seaborn
   - pip:
       - -e .
-      - lime==0.2.0.1
-      - captum 

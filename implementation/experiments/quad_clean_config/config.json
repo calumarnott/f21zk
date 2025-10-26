@@ -145,26 +145,11 @@
     "n_samples": 256
   },
   "features": [
-    "x",
-    "z",
-    "theta",
-    "xq_dot",
-    "zq_dot",
-    "theta_dot",
-    "l",
-    "phi",
-    "l_dot",
-    "phi_dot",
-    "u_x",
-    "u_z",
-    "u_theta",
-    "u_phi",
-    "u_l",
-    "error_x",
-    "error_z",
-    "error_theta",
-    "error_phi",
-    "error_l"
+  "x", "z", "theta",
+  "xq_dot", "zq_dot", "theta_dot",
+  "l", "phi", "l_dot", "phi_dot", 
+  "error_x", "error_z", "error_theta", "error_phi", "error_l",
+  "u_x","u_z","u_theta","u_phi","u_l"
   ],
   "exp": "trial_quad_config"
 }

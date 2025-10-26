@@ -1,0 +1,14 @@
+{
+  "best_val": 0.0078242795355618,
+  "test_mse": 0.040860990199726076,
+  "test_mae": 0.04761597476899624,
+  "sizes": {
+    "train": 1600,
+    "val": 200,
+    "test": 200
+  },
+  "ckpt": "models/checkpoints/trial_quad_config.pt",
+  "device": "cpu",
+  "adv_enabled": true,
+  "adv_mode": "mix"
+}

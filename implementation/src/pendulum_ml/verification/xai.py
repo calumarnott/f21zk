@@ -65,7 +65,6 @@ def lime_explain_instance(model, explainer, x, num_features=5, output_idx=None, 
         num_features=num_features
     )
 
-    # ---- Optional: Boston-style diagnostic ----
     if verbose:
         try:
             pred_true = model_predict(x.cpu().numpy().reshape(1, -1))[0]
@@ -93,13 +92,12 @@ def lime_explain_instance(model, explainer, x, num_features=5, output_idx=None, 
     return explanation
 
 
-# ======================================================
 # 2. GRADIENT-BASED ATTRIBUTIONS
-# ======================================================
+
 
 def integrated_gradients(model, x, baseline=None, steps=50, target=None):
     """
-    Integrated Gradients attribution for (possibly multi-output) regression model.
+    Integrated Gradients attribution for regression model.
 
     Args:
         model: torch model
@@ -120,7 +118,7 @@ def integrated_gradients(model, x, baseline=None, steps=50, target=None):
 
 def saliency_map(model, x):
     """
-    Vanilla Saliency map: gradients of output wrt input.
+    basic saliency map: gradients of output wrt input.
     """
     sal = Saliency(model)
     grads = sal.attribute(x)

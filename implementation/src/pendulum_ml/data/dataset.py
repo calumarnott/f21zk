@@ -14,7 +14,8 @@ def build_loaders(cfg):
         dict: dictionary containing train, val, test data loaders
     """    
     # Load processed data
-    root = Path("data/processed")/cfg["system"]
+    # root = Path("data/processed")/cfg["system"]
+    root = Path(__file__).resolve().parents[3] / "data" / "processed" / cfg["system"] #makes it independent of where the script or notebook runs.
     X = torch.load(root/"X.pt")
     y = torch.load(root/"y.pt")
     full = TensorDataset(X, y)

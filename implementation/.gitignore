@@ -9,3 +9,5 @@ src/pendulum_ml.egg-info/
 # experiments/
 # !data/README.md
 # !models/checkpoints/.gitkeep
+experiments/**/adv_samples/
+experiments/**/adv_samples/**

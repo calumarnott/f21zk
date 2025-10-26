@@ -114,13 +114,14 @@ def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Para
 
     return state, u_dict, err_dict
 
-def animate(cfg, trajectory_path, out_path=None):
+def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
     """ Create animation of a trajectory in mp4 format.
 
     Args:
         cfg (dict): config dictionary
         trajectory_path (str, Path or np.ndarray): path to trajectory CSV file or trajectory array
         out_path (str or Path, optional): path to save the output animation file. Defaults to "data/raw/file.mp4".
+        plot (bool, optional): whether to generate plots of state variables over time. Defaults to False.
 
     Returns:
         str: path to the output animation file
@@ -144,7 +145,6 @@ def animate(cfg, trajectory_path, out_path=None):
         raise ValueError("trajectory_path should be a file path or a numpy array.")
         
     params = validate_params(Params, cfg["dynamics"]["params"])
-
     
     d = params.quad.arm_length
     
@@ -256,6 +256,94 @@ def animate(cfg, trajectory_path, out_path=None):
         plt.show()
 
     plt.close(fig)
+    
+    
+    # Optional plotting of state variables over time
+    if plot:
+        num_trajectories = cfg["data"].get("n_trajectories", 1)
+        
+        # first plot all trajectories in one figure with subplots
+        fig, axs = plt.subplots(3, 1, figsize=(8, 12))
+        
+        time = data[:, 0]
+        x = data[:, 1]
+        z = data[:, 2]
+        phi = data[:, 8]
+        # x vs time
+        axs[0].plot(time, x, label='x (position)', color='blue')
+        axs[0].axhline(y=4.0, color='orange', linestyle='--', label='x setpoint')
+        axs[0].set_title('x vs Time')
+        axs[0].set_xlabel('Time (s)')
+        axs[0].set_ylabel('x (m)')
+        axs[0].legend()
+        axs[0].grid()
+        
+        # z vs time
+        axs[1].plot(time, z, label='z (altitude)', color='blue')
+        axs[1].axhline(y=5.0, color='orange', linestyle='--', label='z setpoint')
+        axs[1].set_title('z vs Time')
+        axs[1].set_xlabel('Time (s)')
+        axs[1].set_ylabel('z (m)')
+        axs[1].legend()
+        axs[1].grid()
+        
+        # phi vs time
+        axs[2].plot(time, phi, label='phi (payload angle)', color='blue')
+        axs[2].axhline(y=0.0, color='orange', linestyle='--', label='phi setpoint')
+        axs[2].set_title('phi vs Time')
+        axs[2].set_xlabel('Time (s)')
+        axs[2].set_ylabel('phi (rad)')
+        axs[2].legend()
+        axs[2].grid()
+        
+        plt.tight_layout()
+        # output path wihout .mp4 or .gif + _all_trajectories.png
+        plot_path = out_path.parent / f"{out_path.stem}_all_trajectories.png"
+        plt.savefig(plot_path)
+        plt.close()
+        print(f"All trajectories plot saved to {plot_path}")
+
+        time = data[:, 0].reshape(num_trajectories, -1)
+        x = data[:, 1].reshape(num_trajectories, -1)
+        z = data[:, 2].reshape(num_trajectories, -1)
+        phi = data[:, 8].reshape(num_trajectories, -1)
+        
+        for i in range(num_trajectories):
+            fig, axs = plt.subplots(3, 1, figsize=(8, 12))
+            
+            # x vs time
+            axs[0].plot(time[i], x[i], label='x (position)', color='blue')
+            axs[0].axhline(y=4.0, color='orange', linestyle='--', label='x setpoint')
+            axs[0].set_title('x vs Time')
+            axs[0].set_xlabel('Time (s)')
+            axs[0].set_ylabel('x (m)')
+            axs[0].legend()
+            axs[0].grid()
+            
+            # z vs time
+            axs[1].plot(time[i], z[i], label='z (altitude)', color='blue')
+            axs[1].axhline(y=5.0, color='orange', linestyle='--', label='z setpoint')
+            axs[1].set_title('z vs Time')
+            axs[1].set_xlabel('Time (s)')
+            axs[1].set_ylabel('z (m)')
+            axs[1].legend()
+            axs[1].grid()
+            
+            # phi vs time
+            axs[2].plot(time[i], phi[i], label='phi (payload angle)', color='blue')
+            axs[2].axhline(y=0.0, color='orange', linestyle='--', label='phi setpoint')
+            axs[2].set_title('phi vs Time')
+            axs[2].set_xlabel('Time (s)')
+            axs[2].set_ylabel('phi (rad)')
+            axs[2].legend()
+            axs[2].grid()
+            
+            plt.tight_layout()
+            plot_path = out_path.parent / f"{out_path.stem}_{i+1}_plots.png"
+            plt.savefig(plot_path)
+            plt.close()
+            print(f"Plot {i+1} saved to {plot_path}")
+    
     return str(out_path)
 
 # Unit vectors based on rope swing angle

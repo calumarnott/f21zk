@@ -154,16 +154,35 @@ dynamics:
     winch:
       model: algebraic
       omega: 10.0
+features:
+- x
+- z
+- theta
+- xq_dot
+- zq_dot
+- theta_dot
+- l
+- phi
+- l_dot
+- phi_dot
+- u_x
+- u_z
+- u_theta
+- u_phi
+- u_l
+- error_x
+- error_z
+- error_theta
+- error_phi
+- error_l
 model:
-  dropout: 0.1
+  dropout: 0.0
   hidden:
   - 128
-  - 256
-  - 256
   - 128
-  in_dim: 15
+  in_dim: 14
   name: mlp
-  out_dim: 5
+  out_dim: 4
 seed: 42
 system: quadcopter
 train:
@@ -178,16 +197,18 @@ train:
       - -3.1416
       - -10.0
     enabled: false
-    eps: 0.03
+    eps: 0.05
     method: pgd
     mix_alpha: 0.5
-    mode: replace
+    mode: mix
     norm: linf
     p: 1.0
+    save_every: 1
+    save_samples: 16
     start_epoch: 0
-    steps: 10
+    steps: 40
   batch_size: 32
-  epochs: 80
+  epochs: 100
   lr: 1e-3
   show_test_progress: false
   show_val_progress: true

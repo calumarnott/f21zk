@@ -15,6 +15,12 @@ if __name__ == "__main__":
     else:
         animate_flag = False
         
+    if "--plot" in sys.argv:
+        sys.argv.remove("--plot")  # remove it so parse_with_config doesn't get confused
+        plot_graphs_flag = True
+    else:
+        plot_graphs_flag = False
+        
     cfg, _ = parse_with_config() # get config from command-line args
     
     
@@ -27,7 +33,7 @@ if __name__ == "__main__":
         out_dir = Path("data/raw") / cfg["system"] / "animations"
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / (Path(raw_path).stem + ".mp4")
-        animation_path = cps.animate(cfg, trajectory_path=raw_path, out_path=out_path)
+        animation_path = cps.animate(cfg, trajectory_path=raw_path, out_path=out_path, plot=plot_graphs_flag)
         print(f"Animation saved to: {animation_path}")
         
     # save config used for this data to data/raw/<system>/configs/traj_name_from_raw_path.yaml

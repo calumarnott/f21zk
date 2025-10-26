@@ -27,17 +27,21 @@ def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
     theta_dot0 = rng.uniform(-1.0, 1.0)   # angular velocity
     return np.array([theta0, theta_dot0], dtype=float)
 
-def animate(cfg, trajectory_path, out_path=None):
+def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
     """ Create animation of a trajectory in mp4 format.
 
     Args:
         cfg (dict): config dictionary
         trajectory_path (str, Path or np.ndarray): path to trajectory CSV file or trajectory array
         out_path (str or Path, optional): path to save the output animation file. Defaults to "data/raw/file.mp4".
+        plot (bool, optional): whether to generate plots of state variables over time. Defaults to False.
 
     Returns:
         str: path to the output animation file
     """
+    if plot:
+        raise NotImplementedError("Plotting state variable graphs is not yet implemented for pendulum system.")
+    
     if out_path is None:
         raise ValueError("Missing argument for animate: out_path")
     

@@ -114,8 +114,8 @@
       "enabled": true,
       "method": "pgd",
       "norm": "linf",
-      "eps": 0.05,
-      "steps": 40,
+      "eps": 0.2,
+      "steps": 100,
       "alpha": null,
       "p": 1.0,
       "mode": "mix",
@@ -145,11 +145,26 @@
     "n_samples": 256
   },
   "features": [
-  "x", "z", "theta",
-  "xq_dot", "zq_dot", "theta_dot",
-  "l", "phi", "l_dot", "phi_dot", 
-  "error_x", "error_z", "error_theta", "error_phi", "error_l",
-  "u_x","u_z","u_theta","u_phi","u_l"
-],
-  "exp": "trial_quad_config"
+    "x",
+    "z",
+    "theta",
+    "xq_dot",
+    "zq_dot",
+    "theta_dot",
+    "l",
+    "phi",
+    "l_dot",
+    "phi_dot",
+    "error_x",
+    "error_z",
+    "error_theta",
+    "error_phi",
+    "error_l",
+    "u_x",
+    "u_z",
+    "u_theta",
+    "u_phi",
+    "u_l"
+  ],
+  "exp": "trial_quad_config_0.2_100"
 }

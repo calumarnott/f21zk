@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""
-plot_xai.py
-Visualize explainability (LIME / IG / drift) for a trained controller.
 
-Usage:
-    python plot_xai.py --run <run_id> [--attack pgd]
-"""
+import os
+os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
+os.environ["KMP_WARNINGS"] = "FALSE"
+os.environ["MKL_VERBOSE"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3" 
 
 import argparse
 import json
@@ -13,6 +12,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+import seaborn as sns
 
 from pendulum_ml.data.dataset import build_loaders
 from pendulum_ml.models.registry import make_model
@@ -29,7 +29,7 @@ p.add_argument("--attack", default="pgd", help="Attack method (pgd, fgsm, etc.)"
 p.add_argument("--eps", type=float, default=0.02)
 p.add_argument("--steps", type=int, default=10)
 # p.add_argument("--alpha", type=float, default=0.005)
-p.add_argument("--verbose", action="store_true", help="Show Boston-style diagnostics for one sample/output")
+p.add_argument("--verbose", action="store_true",)
 args = p.parse_args()
 
 run_dir = Path("experiments") / args.run
@@ -219,6 +219,50 @@ def plot_integrated_gradients(model, X, idx=42):
         plt.close()
         print(f"[INFO] Saved: {out_path}")
 
+# potential feature entaglemnet plot
+def plot_feature_entanglement(model, X, feature_names, n_samples=100):
+    """
+    using Integrated Gradients correlation heatmap.
+    """
+    model.eval()
+    X_sub = X[:n_samples].requires_grad_(True)
+    attrs_all = []
+
+    print(f"[INFO] Computing IG attributions for {n_samples} samples...")
+
+    for i in range(n_samples):
+        x = X_sub[i:i+1]
+        with torch.no_grad():
+            y = model(x)
+        out_dim = y.shape[1] if y.ndim > 1 else 1
+
+        # Compute IG for each output and average (for multi-output models)
+        attr_accum = torch.zeros_like(x)
+        for j in range(out_dim):
+            attrs, _ = xai.integrated_gradients(model, x, target=j)
+            attr_accum += attrs.abs()  # absolute attribution magnitude
+        attrs_all.append(attr_accum.squeeze(0).cpu().numpy())
+
+    attrs_all = np.stack(attrs_all, axis=0)  # shape (n_samples, n_features)
+
+    # Compute correlation between feature attributions
+    corr = np.corrcoef(attrs_all.T)
+
+    # === Plot ===
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(
+        corr, xticklabels=feature_names, yticklabels=feature_names,
+        cmap="coolwarm", center=0, square=True, cbar_kws={"label": "Correlation"}
+    )
+    plt.title("Feature Entanglement (IG Correlation Heatmap)")
+    plt.xticks(rotation=45, ha="right", fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.tight_layout()
+
+    out_path = figs / "feature_entanglement_IG_corr.png"
+    plt.savefig(out_path, dpi=200)
+    plt.close()
+    print(f"[INFO] Saved: {out_path}")
 
 
 # =====================================================
@@ -227,5 +271,6 @@ def plot_integrated_gradients(model, X, idx=42):
 plot_lime_comparison(model, X, attack_fn)
 plot_integrated_gradients(model, X)
 summarize_lime_drift(model, X, attack_fn)
+plot_feature_entanglement(model, X, feature_names)
 
 print(f"✅ Explainability plots saved in: {figs}")

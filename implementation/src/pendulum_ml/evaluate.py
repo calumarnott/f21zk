@@ -101,14 +101,23 @@ def evaluate(
         import pandas as pd
         
         # concatenate labels and predictions from all batches
-        y_true = torch.cat(ys).numpy().ravel()
-        y_pred = torch.cat(yh).numpy().ravel()
-        
+        # save 1 column CSV per y_true output and 1 column per y_pred output
+        n_outputs = ys[0].shape[1]
+        # flatten to dim (N, n_outputs)
+        y_true = torch.cat(ys, dim=0).numpy().reshape(-1, n_outputs)
+        y_pred = torch.cat(yh, dim=0).numpy().reshape(-1, n_outputs)
+
         # ensure directory exists
         save_preds_csv.parent.mkdir(parents=True, exist_ok=True)
         
         # save to CSV
-        pd.DataFrame({"y_true": y_true, "y_pred": y_pred}).to_csv(save_preds_csv, index=False)
+        # pd.DataFrame({"y_true": y_true, "y_pred": y_pred}).to_csv(save_preds_csv, index=False)
+        
+        df_dict = {}
+        for i in range(n_outputs):
+            df_dict[f"y_true_{i}"] = y_true[:, i]
+            df_dict[f"y_pred_{i}"] = y_pred[:, i]
+        pd.DataFrame(df_dict).to_csv(save_preds_csv, index=False)
 
     return results
 

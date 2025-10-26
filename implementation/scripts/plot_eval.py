@@ -26,19 +26,24 @@ if __name__ == "__main__":
 
     # Load predictions and true values
     df = pd.read_csv(preds_path)
-    y, yhat = df["y_true"].values, df["y_pred"].values
-    lo, hi = min(y.min(), yhat.min()), max(y.max(), yhat.max())
-
-    # Parity plot
-    plt.figure()
-    plt.scatter(y, yhat, s=10, alpha=0.6)
-    plt.plot([lo, hi], [lo, hi], linestyle="--")
-    plt.xlabel("True")
-    plt.ylabel("Predicted")
-    plt.title(f"Parity plot ({args.split})")
-    plt.tight_layout()
-    plt.savefig(figs / f"parity_{args.split}.png", dpi=200)
-    plt.close()
+    
+    # make one plot per output dimension
+    n_outputs = (df.shape[1]) // 2  # assuming columns are y_true_0, y_pred_0, y_true_1, y_pred_1, ...
+    for i in range(n_outputs):
+        y = df[f"y_true_{i}"].values
+        yhat = df[f"y_pred_{i}"].values
+        lo, hi = min(y.min(), yhat.min()), max(y.max(), yhat.max())
+        
+        # Parity plot for this output
+        plt.figure()
+        plt.scatter(y, yhat, s=10, alpha=0.6)
+        plt.plot([lo, hi], [lo, hi], linestyle="--")
+        plt.xlabel("True")
+        plt.ylabel("Predicted")
+        plt.title(f"Parity plot for output {i} ({args.split})")
+        plt.tight_layout()
+        plt.savefig(figs / f"parity_{args.split}_output_{i}.png", dpi=200)
+        plt.close()
 
     # Draw test MSE as a dashed line on the loss curve (if test)
     if args.split == "test":

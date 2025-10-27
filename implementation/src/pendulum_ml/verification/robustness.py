@@ -188,7 +188,15 @@ def plot_feature_sensitivity_heatmap(
         for i in range(n_out):
             axes[i].plot(xs, S_np[i].reshape(T))
             axes[i].set_ylabel(f"out {i}" if not output_names else output_names[i])
-        axes[-1].set_xlabel("input index" if input_names is None else " • ".join(input_names))
+        
+        # Set proper x-axis labels and ticks
+        axes[-1].set_xlabel("Input Features")
+        if input_names is not None:
+            axes[-1].set_xticks(xs)
+            axes[-1].set_xticklabels(input_names, rotation=45, ha='right')
+        else:
+            axes[-1].set_xlabel("Input index")
+            
         fig.suptitle(title)
         plt.tight_layout()
         plt.show()

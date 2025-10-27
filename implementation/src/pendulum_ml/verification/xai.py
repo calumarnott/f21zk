@@ -1,3 +1,6 @@
+import sys, os
+sys.stderr = open(os.devnull, 'w')
+
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -135,9 +138,8 @@ def smoothgrad(model, x, stdev=0.02, n_samples=25):
     return smg.detach()
 
 
-# ======================================================
+
 # 3. LIME STABILITY & PLOTTING
-# ======================================================
 
 def attribution_drift(lime_before, lime_after):
     """

@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
-os.environ["KMP_WARNINGS"] = "FALSE"
-os.environ["MKL_VERBOSE"] = "0"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3" 
-
 import argparse
 import json
 import torch

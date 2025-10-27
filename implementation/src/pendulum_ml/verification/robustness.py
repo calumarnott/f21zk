@@ -55,13 +55,13 @@ def empirical_local_lipschitz(
     y0 = model(x)
     best = torch.zeros(x.size(0), device=x.device)
     for _ in range(trials):
-        u = torch.randn_like(x)
-        u_norm = _flatten2(u).norm(p=2, dim=1).clamp_min(1e-12)
-        u = u * (radius / u_norm).view(-1, *([1] * (x.ndim - 1)))
-        y = model(x + u)
-        num = _flatten2(y - y0).norm(p=2, dim=1)
-        den = _flatten2(u).norm(p=2, dim=1).clamp_min(1e-12)
-        best = torch.maximum(best, num / den)
+        u = torch.randn_like(x) # random perturbation of same shape as x
+        u_norm = _flatten2(u).norm(p=2, dim=1).clamp_min(1e-12) # u norm
+        u = u * (radius / u_norm).view(-1, *([1] * (x.ndim - 1))) # scale to radius
+        y = model(x + u) # compute perturbed output
+        num = _flatten2(y - y0).norm(p=2, dim=1) # output change norm
+        den = _flatten2(u).norm(p=2, dim=1).clamp_min(1e-12) # input change norm
+        best = torch.maximum(best, num / den) # update highest found ratio
     return best.mean().item()
 
 
@@ -80,12 +80,14 @@ def jacobian_frobenius_norm(
         y = y.unsqueeze(1)
 
     total = 0.0
-    for i in range(y.shape[1]):
+    for i in range(y.shape[1]): # for each output dimension
+        
+        # compute gradient of output i w.r.t. input x
         grad_i = torch.autograd.grad(
             y[:, i].sum(), x, create_graph=False, retain_graph=True
         )[0]
-        total += _flatten2(grad_i).pow(2).sum(dim=1)  # per-sample ||∂y_i/∂x||_F^2
-    frob = (total / y.shape[1]).sqrt().mean().item()
+        total += _flatten2(grad_i).pow(2).sum(dim=1)  # squared sum of gradients ||∂y_i/∂x||_F^2
+    frob = (total / y.shape[1]).sqrt().mean().item() # average over outputs and batch
     return float(frob)
 
 
@@ -266,12 +268,13 @@ def summarize_lipschitz(
     trials: int = 20,
     jacobian_batch: int = 32,
     print_header: Optional[str] = None,
+    include_spectral_bound: bool = False,
 ) -> Dict[str, float]:
     """
     Prints and returns a compact summary dict:
       - empirical local Lipschitz for a few radii
       - Jacobian Frobenius norm (local upper bound)
-      - spectral-norm product upper bound (global rough bound)
+      - spectral-norm product upper bound (global rough bound) - optional
     """
     model.eval()
     x = _take_first_batch(loader, device, max_batch_size=max(32, jacobian_batch))
@@ -280,11 +283,11 @@ def summarize_lipschitz(
     if print_header:
         print(f"\n=== {print_header} ===")
 
-    # empirical K
+    # empirical L - compute once per radius
     for r in radii:
-        k_r = empirical_local_lipschitz(model, x, radius=r, trials=trials)
-        results[f"empirical_K_r={r}"] = k_r
-        print(f"Empirical local K @ radius={r:.3f}: {k_r:.6f}")
+        l_r = empirical_local_lipschitz(model, x, radius=r, trials=trials)
+        results[f"empirical_L_r={r}"] = l_r
+        print(f"Empirical local L @ radius={r:.3f}: {l_r:.6f}")
 
     # jacobian Frobenius (use smaller sub-batch to be safe)
     jac_x = x[:jacobian_batch]
@@ -292,10 +295,11 @@ def summarize_lipschitz(
     results["jacobian_frobenius"] = jac
     print(f"Jacobian Frobenius norm (local UB): {jac:.6f}")
 
-    # spectral upper bound
-    spec = spectral_norm_upper_bound(model)
-    results["spectral_product_upper_bound"] = spec
-    print(f"Spectral product upper bound (global, rough): {spec:.6f}")
+    # spectral upper bound - only if requested (often too loose to be useful)
+    if include_spectral_bound:
+        spec = spectral_norm_upper_bound(model)
+        results["spectral_product_upper_bound"] = spec
+        print(f"Spectral product upper bound (global, rough): {spec:.6f}")
 
     return results
 
@@ -307,6 +311,7 @@ def compare_models_summary(
     radii: Sequence[float] = (0.01, 0.05, 0.1),
     trials: int = 20,
     jacobian_batch: int = 32,
+    include_spectral_bound: bool = False,
 ) -> Dict[str, Dict[str, float]]:
     """
     Runs summarize_lipschitz over multiple named models, prints side-by-side blocks,
@@ -317,7 +322,7 @@ def compare_models_summary(
         out[name] = summarize_lipschitz(
             mdl, loader, device,
             radii=radii, trials=trials, jacobian_batch=jacobian_batch,
-            print_header=name,
+            print_header=name, include_spectral_bound=include_spectral_bound,
         )
     return out
 

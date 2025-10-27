@@ -96,8 +96,8 @@ train:
     enabled: false       # turn on adversarial training
     method: "pgd"        # "pgd" or "fgsm"
     norm: "linf"         # "linf" or "l2"
-    eps: 0.05
-    steps: 40            # PGD only; FGSM ignores this
+    eps: 0.2 #0.05
+    steps: 100 #40            # PGD only; FGSM ignores this
     alpha: null          # null -> eps/steps
     p: 1.0               # probability to attack a batch (0..1)
     mode: "mix"      # "replace" | "mix"
@@ -121,6 +121,7 @@ verify:
 features: [
   "x", "z", "theta",
   "xq_dot", "zq_dot", "theta_dot",
-  "l", "phi", "l_dot", "phi_dot", "u_x","u_z","u_theta","u_phi","u_l",
-  "error_x", "error_z", "error_theta", "error_phi", "error_l"
+  "l", "phi", "l_dot", "phi_dot", 
+  "error_x", "error_z", "error_theta", "error_phi", "error_l",
+  "u_x","u_z","u_theta","u_phi","u_l"
 ]

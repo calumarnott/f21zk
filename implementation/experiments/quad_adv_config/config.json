@@ -105,7 +105,7 @@
     "out_dim": 5
   },
   "train": {
-    "batch_size": 32,
+    "batch_size": 200,
     "epochs": 20,
     "lr": 0.001,
     "show_val_progress": true,

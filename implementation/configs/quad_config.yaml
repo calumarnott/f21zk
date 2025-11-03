@@ -59,6 +59,7 @@ controller:
       Kd: 4. 
       u_min: -10.0
       u_max: 10.0
+      setpoint: 0.0
 
     l:
       Kp: 0.

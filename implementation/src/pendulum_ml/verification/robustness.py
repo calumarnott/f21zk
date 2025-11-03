@@ -268,8 +268,7 @@ def plot_per_input_bar(
 # High-level convenience
 # -----------------------------
 
-def summarize_lipschitz(
-    model: torch.nn.Module,
+def summarize_lipschitz(model: torch.nn.Module,
     loader,
     device: torch.device,
     radii: Sequence[float] = (0.01, 0.05, 0.1),

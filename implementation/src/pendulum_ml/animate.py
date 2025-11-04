@@ -58,7 +58,7 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                 sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
                 err_dict[axis] = control_error(cps, axis, x, sp)
 
-            x_input = np.concatenate([x, [err_dict[axis] for axis in cps.CONTROL_AXES]], axis=0)
+            x_input = np.concatenate([x, [err_dict[axis] for axis in cps.INPUT_ERROR_AXES]], axis=0)
             t = 0.0
             x_traj = np.concatenate([[t], x_input], axis=0)
             
@@ -70,14 +70,14 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                     x_tensor = torch.tensor(x_input, dtype=torch.float32).unsqueeze(0)  # shape (1, state_dim + num_control_axes)
                     # to device
                     x_tensor = x_tensor.to(device)
-                    u_tensor = model(x_tensor)  # shape (1, num_controls)
-                    u = u_tensor.squeeze(0).cpu().numpy()  # shape (num_controls,)
-                    
+                    u_tensor = model(x_tensor)  # shape (1, num_output_controls)
+                    u = u_tensor.squeeze(0).cpu().numpy()  # shape (num_output_controls,)
+
                 control_steps_counter += 1
                 
                 # Step the dynamics with current control inputs
-                x = rk4_step(x, {axis: float(u[j]) for j, axis in enumerate(cps.CONTROL_AXES)}, cps.f, params, dt)            
-                
+                x = rk4_step(x, {axis: float(u[j]) for j, axis in enumerate(cps.OUTPUT_CONTROL_AXES)}, cps.f, params, dt)
+
                 for i, name in enumerate(cps.STATE_NAMES):
                     if "angle" in name or "theta" in name or "phi" in name:
                         x[i] = wrap_to_pi(x[i])
@@ -89,9 +89,9 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                     sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
                     err = control_error(cps, axis, x, sp)
                     err_dict[axis] = float(err)
-                    
-                x_input = np.concatenate([x, [err_dict[axis] for axis in cps.CONTROL_AXES]], axis=0)
-                x_traj = np.concatenate([[t], x_input], axis=0)   
+
+                x_input = np.concatenate([x, [err_dict[axis] for axis in cps.INPUT_ERROR_AXES]], axis=0)
+                x_traj = np.concatenate([[t], x_input], axis=0)
 
 
                 trajectory[k*num_steps + i] = x_traj  # state + error

@@ -107,8 +107,10 @@ def parse_with_config():
     
     # set in_dim and out_dim based on system
     cps = import_system(cfg["system"])
-    cfg["model"]["in_dim"] = len(cps.STATE_NAMES) + len(cps.CONTROL_AXES) # state + error for each control axis
-    cfg["model"]["out_dim"] = len(cps.CONTROL_AXES) # one output per control axis
+    
+    name = cfg["model"]["name"]
+    cfg["model"][name]["in_dim"] = len(cps.STATE_NAMES) + len(cps.INPUT_ERROR_AXES) # state + error for each control axis
+    cfg["model"][name]["out_dim"] = len(cps.OUTPUT_CONTROL_AXES) # control for each control axis
     
     seed_all(cfg.get("seed", 0))
     

@@ -40,8 +40,9 @@ data:
 # model parameters
 model:
   name: "mlp"
-  hidden: [15, 15, 4] # hidden layer sizes
-  dropout: 0.0
+  mlp:
+    hidden: [15, 15, 4] # hidden layer sizes
+    dropout: 0.0
 
 # training parameters
 train:

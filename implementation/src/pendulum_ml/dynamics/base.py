@@ -134,26 +134,6 @@ def build_controllers_from_cfg(ctrl_cfg: dict, axes: list[str]):
         
     return controllers
 
-# def validate_params(cps, params):
-#     """ Validate that all required parameters are present at any level of nesting.
-    
-#     Args:
-#         cps (module): dynamics module (e.g. pendulum_ml.dynamics.pendulum)
-#         params (dict): parameters dictionary
-#     Raises:
-#         ValueError: if a required parameter is missing or has the wrong type
-#     Returns:
-#         bool: True if all required parameters are present
-#     """
-#     for key, value in cps.REQUIRED_PARAMS.items():
-#         if key not in params:
-#             raise ValueError(f"Missing required parameter: {key}")
-#         if isinstance(value, dict):
-#             if not isinstance(params[key], dict):
-#                 raise ValueError(f"Parameter {key} should be a dictionary.")
-#             validate_params(params[key])
-#     return True
-
 def validate_params(dataclass_params, params):
     """ Validate that all required parameters are present at any level of nesting.
     

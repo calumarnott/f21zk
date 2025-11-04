@@ -1,8 +1,16 @@
+from operator import index
 from pathlib import Path
 import torch
-from torch.utils.data import TensorDataset, DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Dataset
 
 # Add custom dataset class if needed
+
+class TensorDataset(Dataset):
+    def __init__(self, X: torch.Tensor, Y: torch.Tensor):
+        self.X, self.Y = X, Y
+    def __len__(self): return self.X.shape[0]
+    def __getitem__(self, i): return self.X[i], self.Y[i]
+
 
 def build_loaders(cfg):
     """ Build data loaders from processed dataset.
@@ -15,7 +23,11 @@ def build_loaders(cfg):
     """    
     # Load processed data
     # root = Path("data/processed")/cfg["system"]
-    root = Path(__file__).resolve().parents[3] / "data" / "processed" / cfg["system"] #makes it independent of where the script or notebook runs.
+    if "processed_tag" in cfg["data"]:
+        root = Path(__file__).resolve().parents[3] / "data" / "processed" / cfg["data"]["processed_tag"]
+    else:
+        root = Path(__file__).resolve().parents[3] / "data" / "processed" / cfg["system"] #makes it independent of where the script or notebook runs.
+    
     X = torch.load(root/"X.pt")
     y = torch.load(root/"y.pt")
     full = TensorDataset(X, y)

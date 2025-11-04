@@ -108,7 +108,7 @@ def simulate(cfg, out_dir="data/raw"):
     Returns:
         list: list containing the path to the saved trajectory CSV file
     """
-    sys_name = cfg["system"]               # e.g., "pendulum"
+    sys_name = cfg["system"]
     out = Path(out_dir) / sys_name
     out.mkdir(parents=True, exist_ok=True) # ensure output directory exists
     
@@ -196,16 +196,19 @@ def simulate(cfg, out_dir="data/raw"):
             for i, name in enumerate(cps.STATE_NAMES):
                 row[name] = float(x[i])
             # errors and controls per axis
-            for axis in cps.CONTROL_AXES:
-                row[f"error_{axis}"] = err_dict[axis]
-                row[f"u_{axis}"] = u_dict[axis]
+            for err_axis in cps.INPUT_ERROR_AXES:
+                row[f"error_{err_axis}"] = err_dict[err_axis]
+                
+            for ctrl_axis in cps.OUTPUT_CONTROL_AXES:
+                row[f"u_{ctrl_axis}"] = u_dict[ctrl_axis]
+                
             rows.append(row)
             
     # Write the whole run into a single CSV
     # Ensure column order: id, t, states..., errors..., controls...
     col_order = ["traj_id", "t"] + cps.STATE_NAMES + \
-                [f"error_{a}" for a in cps.CONTROL_AXES] + \
-                [f"u_{a}" for a in cps.CONTROL_AXES]
+                [f"error_{a}" for a in cps.INPUT_ERROR_AXES] + \
+                [f"u_{a}" for a in cps.OUTPUT_CONTROL_AXES]
     df = pd.DataFrame(rows, columns=col_order)
     df.to_csv(out_path, index=False)
     print(f"Saved trajectory to {out_path}")

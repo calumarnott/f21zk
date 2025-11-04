@@ -38,14 +38,11 @@ def train(cfg):
     loaders = build_loaders(cfg) # build data loaders
     
     # create model from registry
-    model = make_model(cfg["model"]["name"],
-                        in_dim=int(cfg["model"]["in_dim"]),
-                        hidden=tuple(cfg["model"]["hidden"]),
-                        out_dim=int(cfg["model"]["out_dim"]),
-                        dropout=cfg["model"]["dropout"]).to(device) # create model from registry
-
+    kwargs = cfg["model"].get(cfg["model"]["name"], {})
+    model = make_model(cfg["model"]["name"], **kwargs).to(device)
+    
     # optimizer and loss function
-    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"])) # TODO: add weight decay
+    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"]), weight_decay=float(cfg["train"].get("weight_decay", 0))) # TODO: add weight decay
     criterion = nn.MSELoss()
     
     # Logging

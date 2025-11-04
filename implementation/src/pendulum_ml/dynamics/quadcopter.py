@@ -8,7 +8,8 @@ from ..dynamics.base import validate_params
 STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
                 "theta_dot", "l", "phi", "l_dot", "phi_dot"]
 CONTROL_AXES = ["x", "z", "theta", "phi", "l"]
-# CONTROL_AXES = ["x", "z", "theta", "phi"]
+OUTPUT_CONTROL_AXES = ["z", "theta"]
+INPUT_ERROR_AXES = ["x", "z", "phi"]
 
 
 # --- Leaf-level dataclasses ---
@@ -47,6 +48,29 @@ class Params:
     winch: WinchParams
     actuators: ActuatorParams
 
+
+
+def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
+    """ Sample an initial state.
+
+    Args:
+        rng: np.random.Generator instance
+        dyn_cfg (dict): dynamics configuration dictionary
+    """
+
+    xq = rng.uniform(-4.0, 8.0)    # horizontal position
+    zq = rng.uniform(0.0, 10.0)     # vertical position
+    theta = 0.0                     # pitch angle
+    xdot = 0.0                      # horizontal velocity
+    zdot = 0.0                      # vertical velocity
+    thetadot = 0.0                  # pitch angular velocity
+    l = dyn_cfg["params"]["payload"]["rope_length"]  # rope length
+    phi = rng.uniform(-np.pi, np.pi)  # payload swing angle
+    ldot = 0.0                      # winch velocity
+    phidot = 0.0                    # payload angular velocity
+
+    x0 = np.array([xq, zq, theta, xdot, zdot, thetadot, l, phi, ldot, phidot], dtype=np.float32)
+    return x0
 
 
 # cps.step_simulation(x, t, controllers, cfg, params, dt, control_steps_counter, n_ctrl_steps)
@@ -166,10 +190,10 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
 
     # Axis limits
     margin = 2.0
-    # xmin, xmax = quad_traj[:, 0].min() - margin, quad_traj[:, 0].max() + margin
-    # zmin, zmax = quad_traj[:, 1].min() - margin, quad_traj[:, 1].max() + margin
-    xmin, xmax = -5, 10
-    zmin, zmax = 0, 10
+    xmin, xmax = quad_traj[:, 0].min() - margin, quad_traj[:, 0].max() + margin
+    zmin, zmax = quad_traj[:, 1].min() - margin, quad_traj[:, 1].max() + margin
+    # xmin, xmax = -5, 10
+    # zmin, zmax = 0, 10
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(zmin, zmax)
 
@@ -382,12 +406,12 @@ def f(state: np.ndarray, control: dict, params: Params) -> np.ndarray:
     # Unpack state
     xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot = state
 
-    a_x_pos = control["x"]
-    a_z_des = control["z"]
-    tau_des = control["theta"]
-    a_x_swing = control["phi"]
-    u_l = control["l"]
-    # u_l = 0.0  # no winch control for now
+    a_x_pos = control.get("x", 0.0)
+    a_z_des = control.get("z", 0.0)
+    tau_des = control.get("theta", 0.0)
+    a_x_swing = control.get("phi", 0.0)
+    u_l = control.get("l", 0.0)
+    u_l = 0.0  # no winch control for now
 
     # --- Mixer ---
     # Desired thrust magnitude (vertical control)
@@ -403,10 +427,6 @@ def f(state: np.ndarray, control: dict, params: Params) -> np.ndarray:
     T2 = np.clip(T2, 0.0, params.actuators.max_thrust)
     T3 = np.clip(T3, 0.0, params.actuators.max_thrust)
     T4 = np.clip(T4, 0.0, params.actuators.max_thrust)
-    
-    # Recompute totals (for consistency)
-    T_total = T1 + T2 + T3 + T4
-    tau = params.quad.arm_length * ((T1 + T2) - (T3 + T4))
 
     # Params
     m_q = params.quad.mass

@@ -44,5 +44,12 @@ if __name__ == "__main__":
         yaml.dump(cfg, f)
     print(f"Config used for this data saved to: {config_path}")
     
+    processed_tag = cfg["data"].get("processed_tag", None)
+    if processed_tag is not None:
+        # If processed_tag is set, use it for the output directory
+        out_dir = Path("data/processed") / processed_tag
+    else:
+        out_dir = Path("data/processed") / cfg["system"]
+
     # process raw data and save processed tensors
-    to_processed(raw_path, cfg, out_dir=f"data/processed/{cfg['system']}")
+    to_processed(raw_path, cfg, out_dir=out_dir)

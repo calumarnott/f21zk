@@ -100,16 +100,16 @@ def run_simulation(params, T, dt):
         # Desired pitch from lateral accel
         theta_des = -np.arctan2(a_x_des, max(g, 1e-6)) 
 
-        # Desired thrust magnitude (vertical control)
-        T_total_des = m_q * (g + a_z_des) / max(np.cos(theta), 0.1)
-        T_total_des = np.clip(T_total_des, 0.0, T_MAX_TOTAL)
-
         # Attitude control
         tau_des = theta_controller.update(theta_des - theta, dt)
 
         #theta_err = theta_des - theta
         #tau_des = Kp_theta * theta_err - Kd_theta * thetadot
         #tau_des = np.clip(tau_des, -TAU_MAX, TAU_MAX)
+
+        # Desired thrust magnitude (vertical control)
+        T_total_des = m_q * (g + a_z_des) / max(np.cos(theta), 0.1)
+        T_total_des = np.clip(T_total_des, 0.0, T_MAX_TOTAL)
 
         # --- Mixer ---
         pair_front = 0.5 * T_total_des + 0.5 * tau_des / max(d, 1e-6)

@@ -1,6 +1,8 @@
 import argparse, json, random, yaml
 import numpy as np, torch
 import importlib
+import os
+from .models.registry import make_model
 
 def import_system(system_name: str):
     """ Import a dynamics module by system name.
@@ -113,3 +115,92 @@ def parse_with_config():
     seed_all(cfg.get("seed", 0))
     
     return cfg, args
+
+def convert_to_onnx(
+    config_path,
+    ckpt_path,
+    onnx_path=None,
+    input_shape=None,
+    opset_version=17,
+    device="cpu"
+):
+    """
+    Converts a PyTorch model (.pt or .pth) to ONNX format.
+    Handles both full model objects and state_dict checkpoints.
+
+    Args:
+        config_path (str): Path to config.json used for training.
+        ckpt_path (str): Path to the saved model (.pt or .pth).
+        onnx_path (str, optional): Path for the output .onnx file.
+                                   Defaults to same as ckpt but with .onnx extension.
+        input_shape (tuple, optional): Shape of dummy input (excluding batch dim).
+                                       E.g. (15,) for MLPs or (3, 224, 224) for CNNs.
+                                       If None, inferred from config["model"]["in_dim"].
+        opset_version (int): ONNX opset version (default=17).
+                             Use 17+ for compatibility with PyTorch 2.x.
+        device (str): 'cpu' or 'cuda'.
+
+    Returns:
+        str: Path to the saved ONNX file.
+    """
+    if not os.path.exists(ckpt_path):
+        raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    # --- Load config ---
+    with open(config_path, "r") as f:
+        cfg = json.load(f)
+
+    model_cfg = cfg["model"]
+
+    # --- Attempt to load the model ---
+    try:
+        # Try loading as a full model object
+        model = torch.load(ckpt_path, map_location=device)
+        model.eval()
+        print("ℹ️ Loaded full model object from checkpoint.")
+    except Exception:
+        # If that fails, assume it's a state_dict and rebuild architecture
+        print("ℹ️ Checkpoint contains state_dict; rebuilding model from config.")
+        model = make_model(
+            model_cfg["name"],
+            in_dim=int(model_cfg["in_dim"]),
+            hidden=tuple(model_cfg["hidden"]),
+            out_dim=int(model_cfg["out_dim"]),
+            dropout=model_cfg["dropout"],
+        ).to(device)
+        state_dict = torch.load(ckpt_path, map_location=device)
+        model.load_state_dict(state_dict)
+        model.eval()
+
+    # --- Set output path ---
+    if onnx_path is None:
+        base = os.path.splitext(ckpt_path)[0]
+        onnx_path = f"{base}.onnx"
+
+    # --- Build dummy input tensor ---
+    if input_shape is None:
+        input_shape = (int(model_cfg["in_dim"]),)
+    dummy_input = torch.randn(1, *input_shape, device=device)
+
+    # --- Export to ONNX ---
+    torch.onnx.export(
+        model,
+        dummy_input,
+        onnx_path,
+        export_params=True,
+        opset_version=opset_version,
+        do_constant_folding=True,
+        input_names=["input"],
+        output_names=["output"],
+        dynamic_axes={
+            "input": {0: "batch_size"},
+            "output": {0: "batch_size"}
+        },
+    )
+
+    print(f"✅ Model successfully exported to ONNX: {onnx_path}")
+    print(f"   → Opset version: {opset_version}")
+    print(f"   → Input shape: (1, {', '.join(map(str, input_shape))})")
+    return onnx_path

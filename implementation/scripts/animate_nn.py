@@ -12,11 +12,13 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--ckpt", required=True, help="Path to checkpoint (e.g., models/checkpoints/<run>.pt)")
     p.add_argument("--run", default=None, help="Run id (experiments/<run>). If omitted, inferred from ckpt name.")
+    p.add_argument("--not-animate", action="store_true", help="Generate animation video.")
     p.add_argument("--plot", action="store_true", help="Also generate plots of state variables over time.")
     
     args = p.parse_args()
 
     plot_graphs = args.plot # boolean flag
+    animate = not args.not_animate # boolean flag
 
     inferred_run = os.path.splitext(os.path.basename(args.ckpt))[0]
     run = args.run or inferred_run
@@ -27,7 +29,7 @@ if __name__ == "__main__":
     cfg = load_cfg(str(path))
     cps = import_system(cfg["system"])
     
-    out_dir = Path("experiments") / run / "animations"
+    out_dir = Path("experiments") / run / "animations" / f"{Path(args.ckpt).stem}"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / (Path(args.ckpt).stem + ".mp4")
     
@@ -49,20 +51,18 @@ if __name__ == "__main__":
     else:
         device = torch.device("cpu")
     
+    kwargs = cfg["model"].get(cfg["model"]["name"], {})
     model = make_model(
         cfg["model"]["name"],
-        in_dim=int(cfg["model"]["in_dim"]),
-        out_dim=int(cfg["model"]["out_dim"]),
-        hidden=tuple(cfg["model"]["hidden"]),
-        dropout=float(cfg["model"]["dropout"]),
+        **kwargs
     ).to(device)
+    
     state = torch.load(args.ckpt, map_location=device)
     model.load_state_dict(state)
     model.eval()
 
     trajectory = generate_trajectory_from_NN_controller(cfg, cps, model, initial_states)
     
-    out_path = cps.animate(cfg, trajectory, out_path=out_path, plot=plot_graphs)
+    out_path = cps.animate(cfg, trajectory, out_path=out_path, plot=plot_graphs, animate=animate)
     print(f"Animation saved to {out_path}")
-    
     

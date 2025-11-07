@@ -1,21 +1,13 @@
-""" Registry for models. This is where you can register new model architectures.
-
-Example usage:
-```
-
-```
-"""
-
+from __future__ import annotations
 from .mlp import MLP
 from .cnn import CNN1D
 from inspect import signature
 from typing import Dict, Any, Optional
-from __future__ import annotations
 # add other models here as needed
 
 REGISTRY = {
   "mlp": MLP,
-  "cnn1d": CNN1D,
+  "cnn": CNN1D,
   # add other models here as needed
 }
 

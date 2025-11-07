@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 from .dynamics.base import rk4_step, wrap_to_pi, control_error, build_controllers_from_cfg
+from .data.process import first_window
+from .utils import import_system
 
 def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
     """ Generate a trajectory using a learned NN controller.
@@ -25,10 +27,11 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
     n_ctrl_steps = int(dt_ctrl / dt)
     state_dim = len(cps.STATE_NAMES)
     num_controls = len(cps.CONTROL_AXES)
+    num_err_inputs = len(cps.INPUT_ERROR_AXES)
     params = cps.validate_params(cps.Params, cfg["dynamics"]["params"])
-    
-    
-    trajectory = np.zeros((num_steps * len(init_states), 1 + state_dim + num_controls), dtype=float)
+
+
+    trajectory = np.zeros((num_steps * len(init_states), 1 + state_dim + num_err_inputs), dtype=float)
 
     t = 0.0
     control_steps_counter = 0
@@ -48,6 +51,7 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
         for k in range(len(init_states)): # for each init state
             x0 = init_states[k]
             x = x0.copy()
+            x_pid = x0.copy()
             
             for c in controllers.values():
                 c.reset()
@@ -62,39 +66,84 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
             t = 0.0
             x_traj = np.concatenate([[t], x_input], axis=0)
             
+            # if window in cfg, x_input = first_window(...)
+            if cfg["data"].get("window", {}).get("length", 0) > 0:
+                x_input, _ = first_window(x_input, None, cfg["data"]["window"]["length"])
+                x_input = x_input.T # shape (state_dim, window_length)
+
             trajectory[k*num_steps] = x_traj
 
             for i in range(1, num_steps):
                 if control_steps_counter % n_ctrl_steps == 0:
                     # Time to compute new control inputs
-                    x_tensor = torch.tensor(x_input, dtype=torch.float32).unsqueeze(0)  # shape (1, state_dim + num_control_axes)
+                    x_tensor = torch.tensor(x_input, dtype=torch.float32).unsqueeze(0)  # shape (1, input_dim)
                     # to device
                     x_tensor = x_tensor.to(device)
                     u_tensor = model(x_tensor)  # shape (1, num_output_controls)
                     u = u_tensor.squeeze(0).cpu().numpy()  # shape (num_output_controls,)
+                    
+                    
+
+                    ### try calling controllers to test nn controller vs pid behavior
+                    x_pid, u_dict_pid, err_dict_pid = cps.step_simulation(x_pid, t, controllers, params, rk4_step, dt)
+                    
 
                 control_steps_counter += 1
                 
+                for j, axis in enumerate(cps.OUTPUT_CONTROL_AXES):
+                    # clamp control inputs to actuator limits if specified in cfg
+                    u_min = cfg["controller"].get("pid", {}).get(axis, {}).get("u_min", None)
+                    u_max = cfg["controller"].get("pid", {}).get(axis, {}).get("u_max", None)
+                    if u_min is not None and u[j] < u_min:
+                        u[j] = u_min
+                    if u_max is not None and u[j] > u_max:
+                        u[j] = u_max
+
                 # Step the dynamics with current control inputs
-                x = rk4_step(x, {axis: float(u[j]) for j, axis in enumerate(cps.OUTPUT_CONTROL_AXES)}, cps.f, params, dt)
+                x_new = rk4_step(x, {axis: float(u[j]) for j, axis in enumerate(cps.OUTPUT_CONTROL_AXES)}, cps.f, params, dt)
+                
 
                 for i, name in enumerate(cps.STATE_NAMES):
                     if "angle" in name or "theta" in name or "phi" in name:
-                        x[i] = wrap_to_pi(x[i])
+                        x_new[i] = wrap_to_pi(x_new[i])
                 
                 t += dt
-                
-                
+                    
                 for axis, ctrl in controllers.items():
                     sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
-                    err = control_error(cps, axis, x, sp)
+                    err = control_error(cps, axis, x_new, sp)
                     err_dict[axis] = float(err)
+                    
+                # print("\n")
+                # print(f"\t state_name \t | state_err \t | controller_err \t ")
+                # print("--------------------------------------------------------")
+                # for id, axis in enumerate(cps.STATE_NAMES):
+                #     if axis in cps.OUTPUT_CONTROL_AXES:
+                #         axis_nn = u[cps.OUTPUT_CONTROL_AXES.index(axis)]
+                #         axis_pid = u_dict_pid[axis]
+                #         err = axis_nn - axis_pid
+                #     else:
+                #         err = "N/A"
+                #     nm = axis + " "*9
+                #     print(f"\t {nm[:9]} \t | {x[id] - x_pid[id]:.4f} \t | {err} \t ")
 
-                x_input = np.concatenate([x, [err_dict[axis] for axis in cps.INPUT_ERROR_AXES]], axis=0)
+                # input("enter to continue...")
+                    
+                if cfg["data"].get("window", {}).get("length", 0) > 0:
+                    # copy of tensor
+                    x_input_window = x_input
+
+                x_input = np.concatenate([x_new, [err_dict[axis] for axis in cps.INPUT_ERROR_AXES]], axis=0)
                 x_traj = np.concatenate([[t], x_input], axis=0)
 
+                if cfg["data"].get("window", {}).get("length", 0) > 0:
+                    x_input_window = np.roll(x_input_window, shift=-1, axis=1)
+                    x_input_window[:, -1] = new_column = x_input
+                    x_input = x_input_window
 
                 trajectory[k*num_steps + i] = x_traj  # state + error
+                
+                x = x_new
                 
     print(f"x_min, x_max: {trajectory[:,1].min()}, {trajectory[:,1].max()}")
     print(f"z_min, z_max: {trajectory[:,2].min()}, {trajectory[:,2].max()}")

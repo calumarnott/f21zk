@@ -175,13 +175,10 @@ def evaluate_test(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cfg["device"] = str(device) # update cfg with device info
     
+    kwargs = cfg["model"].get(cfg["model"]["name"], {})
     # load model
     model = make_model(
-        cfg["model"]["name"],
-        in_dim=int(cfg["model"]["in_dim"]),
-        out_dim=int(cfg["model"]["out_dim"]),
-        hidden=tuple(cfg["model"]["hidden"]),
-        dropout=float(cfg["model"]["dropout"]),
+        cfg["model"]["name"], **kwargs
     ).to(device)
     state = torch.load(ckpt_path, map_location=device)
     model.load_state_dict(state)

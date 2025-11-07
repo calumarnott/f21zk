@@ -159,7 +159,7 @@ def simulate(cfg, out_dir="data/raw"):
             
             # if cps has method step_simulation, use it
             if hasattr(cps, "step_simulation"):
-                x, u_dict, err_dict = cps.step_simulation(x, t, controllers, params, step, dt)
+                x_new, u_dict, err_dict = cps.step_simulation(x, t, controllers, params, step, dt)
             else:
                 
                 if control_steps_counter % n_ctrl_steps == 0:
@@ -175,18 +175,17 @@ def simulate(cfg, out_dir="data/raw"):
                         u_dict[axis]  = float(u)
                 
                 control_steps_counter += 1
-                        
-                # Step the dynamics with current control inputs
-                x = step(x, u_dict, cps.f, params, dt)
-                x[0] = wrap_to_pi(x[0])  # wrap angle theta to [-pi, pi]
-
                 
                 for axis, ctrl in controllers.items():
                     sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
                     err = control_error(cps, axis, x, sp)
                     err_dict[axis] = float(err)
-            
-            t += dt
+                        
+                # Step the dynamics with current control inputs
+                x_new = step(x, u_dict, cps.f, params, dt)
+                x_new[0] = wrap_to_pi(x_new[0])  # wrap angle theta to [-pi, pi]
+
+        
             # --- record a row aligned as (state_t, error_t, u_t) ---
             row = {
                 "traj_id": traj_id,
@@ -203,6 +202,9 @@ def simulate(cfg, out_dir="data/raw"):
                 row[f"u_{ctrl_axis}"] = u_dict[ctrl_axis]
                 
             rows.append(row)
+            
+            x = x_new  # update state for next step
+            t += dt
             
     # Write the whole run into a single CSV
     # Ensure column order: id, t, states..., errors..., controls...

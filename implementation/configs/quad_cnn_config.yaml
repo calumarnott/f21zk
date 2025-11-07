@@ -39,7 +39,7 @@ controller:
 # dataset parameters
 data:
   processed_tag: "quadcopter_cnn"
-  n_trajectories: 3
+  n_trajectories: 100
   # initial_state:
   #   - [0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] # xq, zq, theta, xq_dot, zq_dot, theta_dot, l, phi, l_dot, phi_dot
   #   - [ 2.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0 ]
@@ -53,27 +53,27 @@ data:
   #   - [ 0.0,
   #   - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
   #   # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)
-  sim_time: 15 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
+  sim_time: 10 # in seconds. Alternatively, horizon: 2000 for fixed number of steps
   train_ratio: 0.8
   val_ratio: 0.1
   test_ratio: 0.1
   standardize: true
 
   window:
-    length: 8
+    length: 2
     stride: 1
 
 # model parameters
 model:
   name: "cnn"
   cnn:
-    channels: [64, 128, 128]
-    kernel_sizes: [5, 5, 3]
-    strides: [1, 1, 1]
-    pool_every: 2
-    dropout: 0.1
-    batch_norm: true
-    head_hidden: [128]
+    channels: [64, 256, 256, 256, 256, 64]
+    kernel_sizes: [2,2,2,2,2,2]
+    strides: [1, 1, 1, 1, 1, 1]
+    pool_every: 0
+    dropout: 0.0
+    batch_norm: false
+    head_hidden: [64]
     activation: "relu"
 
 

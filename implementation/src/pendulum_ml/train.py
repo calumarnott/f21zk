@@ -4,6 +4,7 @@ from tqdm import tqdm
 from .data.dataset import build_loaders
 from .models.registry import make_model
 from .evaluate import evaluate_test, evaluate_val
+import torchinfo
 
 def train(cfg):
     """ Train an MLP model based on the provided configuration.
@@ -41,8 +42,10 @@ def train(cfg):
     kwargs = cfg["model"].get(cfg["model"]["name"], {})
     model = make_model(cfg["model"]["name"], **kwargs).to(device)
     
+    torchinfo.summary(model)
+
     # optimizer and loss function
-    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"]), weight_decay=float(cfg["train"].get("weight_decay", 0))) # TODO: add weight decay
+    opt = optim.Adam(model.parameters(), lr=float(cfg["train"]["lr"]), weight_decay=float(cfg["train"].get("weight_decay", 0)))
     criterion = nn.MSELoss()
     
     # Logging
@@ -80,7 +83,7 @@ def train(cfg):
             # update progress bar
             pbar.set_postfix({
                 "batch_mse": f"{batch_loss:.6f}", 
-                "avg_mse": f"{train_loss/(pbar.n + bs):.6f}"
+                "avg_mse": f"{train_loss/(pbar.n + bs):.6f}" 
             })
 
 

@@ -1,5 +1,7 @@
 from pathlib import Path
 import json, torch, pandas as pd
+from typing import Optional, Union
+import numpy as np
 from ..utils import import_system
 
 
@@ -7,6 +9,35 @@ def processed_dir_for(cfg) -> Path:
     tag = cfg.get("data", {}).get("processed_tag") or cfg.get("system")
     return Path("data/processed") / str(tag)
 
+# Helper: add repetitions of initial state to fill first window
+def first_window(x0: Union[torch.Tensor, np.ndarray], y0: Optional[Union[torch.Tensor, np.ndarray]], length: int):
+    """ Create the first window by repeating the initial state.
+    
+    Args:
+        x0 (torch.Tensor): initial state, shape [C]
+        y0 (torch.Tensor): initial label, shape [D]
+        length (int): length of the window
+    """
+    # Ensure x0 is a torch tensor
+    if isinstance(x0, np.ndarray):
+        x0 = torch.from_numpy(x0).to(dtype=torch.float32)
+    elif not isinstance(x0, torch.Tensor):
+        x0 = torch.tensor(x0, dtype=torch.float32)
+
+    # Repeat to create window of shape (length, C)
+    window = x0.unsqueeze(0).repeat(length, 1)  # shape (length, C)
+
+    # Normalize/convert label if provided
+    label = None
+    if y0 is not None:
+        if isinstance(y0, np.ndarray):
+            label = torch.from_numpy(y0).to(dtype=torch.float32)
+        elif isinstance(y0, torch.Tensor):
+            label = y0
+        else:
+            label = torch.tensor(y0, dtype=torch.float32)
+
+    return window, label
 
 def make_windows(X_seq: torch.Tensor, y_seq: torch.Tensor,
                  length: int, stride: int):
@@ -28,12 +59,21 @@ def make_windows(X_seq: torch.Tensor, y_seq: torch.Tensor,
     # y_seq: [T, D] -> Time steps, D labels
     T, C = X_seq.shape
     
+    assert length > 0 and stride > 0, "Window length and stride must be positive integers."
+    assert length <= T, "Window length must be less than or equal to the sequence length."
+    
     windows, labels = [], []
+    
 
     last_start = T - length
 
     if last_start < 0:
         return None, None
+    
+    # first window
+    win, lab = first_window(X_seq[0], y_seq[0], length)
+    windows.append(win.T)  # transpose to [C, length]
+    labels.append(lab)
     
     for t0 in range(0, last_start + 1, stride):
         t1 = t0 + length

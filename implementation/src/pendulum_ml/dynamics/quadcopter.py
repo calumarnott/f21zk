@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from pathlib import Path
-from ..dynamics.base import validate_params
+from ..dynamics.base import validate_params, wrap_to_pi
 
 STATE_NAMES = ["x", "z", "theta", "xq_dot", "zq_dot",\
                 "theta_dot", "l", "phi", "l_dot", "phi_dot"]
@@ -57,17 +57,28 @@ def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
         rng: np.random.Generator instance
         dyn_cfg (dict): dynamics configuration dictionary
     """
-
-    xq = rng.uniform(-4.0, 8.0)    # horizontal position
-    zq = rng.uniform(0.0, 10.0)     # vertical position
-    theta = 0.0                     # pitch angle
-    xdot = 0.0                      # horizontal velocity
-    zdot = 0.0                      # vertical velocity
-    thetadot = 0.0                  # pitch angular velocity
-    l = dyn_cfg["params"]["payload"]["rope_length"]  # rope length
-    phi = rng.uniform(-np.pi, np.pi)  # payload swing angle
-    ldot = 0.0                      # winch velocity
-    phidot = 0.0                    # payload angular velocity
+    
+    while True:
+        # xq uniform between -2. and 2 and between 6 and 10.
+        if rng.uniform(0,1) < 0.5:
+            xq = rng.uniform(-2.0, 2.0)
+        else:
+            xq = rng.uniform(6.0, 10.0) 
+        zq = rng.uniform(3., 7.0)     # vertical position
+        theta = 0.0                     # pitch angle
+        xdot = 0.0                      # horizontal velocity
+        zdot = 0.0                      # vertical velocity
+        thetadot = 0.0                  # pitch angular velocity
+        l = dyn_cfg["params"]["payload"]["rope_length"]  # rope length
+        phi = rng.uniform(-np.pi/2, np.pi/2)  # payload swing angle
+        ldot = 0.0                      # winch velocity
+        phidot = 0.0                    # payload angular velocity
+        
+        x_avoid = 6.3 <= xq <= 8.4 or 1.6 <= xq <= 1.7
+        z_avoid = 6.0 <= zq <= 7.0
+        phi_avoid = 0.9 <= abs(phi) <= 1.41
+        if not (x_avoid and z_avoid and phi_avoid):
+            break
 
     x0 = np.array([xq, zq, theta, xdot, zdot, thetadot, l, phi, ldot, phidot], dtype=np.float32)
     return x0
@@ -129,6 +140,10 @@ def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Para
     # Integrate dynamics
     state = step(state, u_dict, f, params, dt)
     
+    # wrap angles
+    state[2] = wrap_to_pi(state[2])  # theta
+    state[7] = wrap_to_pi(state[7])  # phi
+
     err_dict["x"] = float(x_ref - x_q)
     err_dict["z"] = float(z_ref - z_q)
     err_dict["theta"] = float(theta_des - theta)
@@ -138,7 +153,7 @@ def step_simulation(state: np.ndarray, t: float, controllers: dict, params: Para
 
     return state, u_dict, err_dict
 
-def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
+def animate(cfg, trajectory_path, out_path=None, plot=False, animate=True) -> str:
     """ Create animation of a trajectory in mp4 format.
 
     Args:
@@ -146,6 +161,7 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
         trajectory_path (str, Path or np.ndarray): path to trajectory CSV file or trajectory array
         out_path (str or Path, optional): path to save the output animation file. Defaults to "data/raw/file.mp4".
         plot (bool, optional): whether to generate plots of state variables over time. Defaults to False.
+        animate (bool, optional): whether to create an animation. Defaults to True.
 
     Returns:
         str: path to the output animation file
@@ -263,25 +279,28 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
         return quad_body, arm_line, rotor_L, rotor_R, rope_line, payload, time_text
 
     dt = cfg["dynamics"].get("dt", 0.01)  # default dt if not specified
-    # --- Animation ---
-    anim = animation.FuncAnimation(
-        fig, update, frames=len(time),
-        init_func=init, blit=True, interval=1000*dt
-    )
 
-    # Save or display
-    print(f'Saving animation to {out_path} ...')
-    if out_path.suffix.lower() == ".mp4":
-        anim.save(out_path, writer="ffmpeg", fps=1./dt)
-        print(f'Animation saved to {out_path}')
-    elif out_path.suffix.lower() == ".gif":
-        anim.save(out_path, writer="pillow", fps=1./dt)
-        print(f'Animation saved to {out_path}')
-    else:
-        print(f"Unsupported extension: {out_path.suffix}, showing instead.")
-        plt.show()
 
-    plt.close(fig)
+    if animate:
+        # --- Animation ---
+        anim = animation.FuncAnimation(
+            fig, update, frames=len(time),
+            init_func=init, blit=True, interval=1000*dt
+        )
+
+        # Save or display
+        print(f'Saving animation to {out_path} ...')
+        if out_path.suffix.lower() == ".mp4":
+            anim.save(out_path, writer="ffmpeg", fps=1./dt)
+            print(f'Animation saved to {out_path}')
+        elif out_path.suffix.lower() == ".gif":
+            anim.save(out_path, writer="pillow", fps=1./dt)
+            print(f'Animation saved to {out_path}')
+        else:
+            print(f"Unsupported extension: {out_path.suffix}, showing instead.")
+            plt.show()
+
+        plt.close(fig)
     
     
     # Optional plotting of state variables over time
@@ -412,6 +431,8 @@ def f(state: np.ndarray, control: dict, params: Params) -> np.ndarray:
     a_x_swing = control.get("phi", 0.0)
     u_l = control.get("l", 0.0)
     u_l = 0.0  # no winch control for now
+    
+    # clamp a_z_des and tau_des to actuator limits
 
     # --- Mixer ---
     # Desired thrust magnitude (vertical control)

@@ -1,0 +1,89 @@
+{
+  "seed": 42,
+  "device": "cpu",
+  "system": "pendulum",
+  "dynamics": {
+    "params": {
+      "m": 2.0,
+      "l": 1.0,
+      "c": 0.0,
+      "g": 9.81
+    },
+    "dt": 0.01,
+    "control_dt": 0.01,
+    "integrator": "rk4"
+  },
+  "controller": {
+    "type": "pid",
+    "pid": {
+      "theta": {
+        "Kp": 10.0,
+        "Ki": 0.0,
+        "Kd": 10.0,
+        "u_min": -10.0,
+        "u_max": 10.0,
+        "setpoint": 0.0
+      }
+    }
+  },
+  "data": {
+    "n_trajectories": 50,
+    "sim_time": 5,
+    "train_ratio": 0.8,
+    "val_ratio": 0.1,
+    "test_ratio": 0.1,
+    "standardize": true
+  },
+  "model": {
+    "name": "mlp",
+    "mlp": {
+      "hidden": [
+        32,
+        32
+      ],
+      "dropout": 0.0,
+      "in_dim": 3,
+      "out_dim": 1
+    }
+  },
+  "train": {
+    "batch_size": 16,
+    "epochs": 100,
+    "lr": "1e-4",
+    "show_val_progress": true,
+    "show_test_progress": false,
+    "adv": {
+      "enabled": false,
+      "method": "pgd",
+      "norm": "linf",
+      "eps": 0.1,
+      "steps": 40,
+      "alpha": null,
+      "p": 1.0,
+      "mode": "mix",
+      "mix_alpha": 0.5,
+      "start_epoch": 0,
+      "save_samples": 16,
+      "save_every": 1,
+      "clip": {
+        "enabled": false,
+        "lo": [
+          -3.1416,
+          -10.0
+        ],
+        "hi": [
+          3.1416,
+          10.0
+        ]
+      }
+    }
+  },
+  "verify": {
+    "attack": "pgd",
+    "norm": "linf",
+    "eps": 0.03,
+    "steps": 40,
+    "alpha": null,
+    "n_samples": 256
+  }
+}

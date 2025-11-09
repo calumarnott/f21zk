@@ -1,0 +1,8 @@
+--parameter mu_theta:-0.01190467830747366
+--parameter mu_theta_dot:0.024778390303254128
+--parameter sd_theta:0.5067620277404785
+--parameter sd_theta_dot:1.0723503828048706
+--parameter epsilon:0.03
+--parameter mu_err:0.01190467830747366
+--parameter sd_err:0.5067620277404785
+--parameter setpoint:0.0

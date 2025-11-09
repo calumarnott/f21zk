@@ -35,7 +35,6 @@ def make_model(name, **kwargs):
     Returns:
         nn.Module: Instantiated model.
     """
-    
     assert name in REGISTRY, f"Model '{name}' not found in registry. Available models: {list(REGISTRY.keys())}"
 
     valid_kwargs = _filter_kwargs(REGISTRY[name], kwargs)

@@ -27,7 +27,7 @@ controller:
 
 # dataset parameters
 data:
-  n_trajectories: 5
+  n_trajectories: 50
   # initial_state:
   #   - [ 3.0,  0.0 ]   # theta, theta_dot. Add more states depending on the system
   #   # - [ 1.57,  0.0 ] # add more initial states (1 per trajectory)
@@ -41,14 +41,14 @@ data:
 model:
   name: "mlp"
   mlp:
-    hidden: [15, 15, 4] # hidden layer sizes
+    hidden: [16, 16] # hidden layer sizes
     dropout: 0.0
 
 # training parameters
 train:
-  batch_size: 32
-  epochs: 50
-  lr: 1e-3
+  batch_size: 16
+  epochs: 100
+  lr: 1e-4
   show_val_progress: true
   show_test_progress: false
   adv:

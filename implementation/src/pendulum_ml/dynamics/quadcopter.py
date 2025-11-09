@@ -176,11 +176,15 @@ def animate(cfg, trajectory_path, out_path=None, plot=False, animate=True) -> st
         out_path.parent.mkdir(parents=True, exist_ok=True)  # ensure output directory exists
         # Load trajectory ignoring header and first column (traj_id)
         data = np.loadtxt(trajectory_path, delimiter=",", skiprows=1, 
-                        usecols=range(1, 2 + len(STATE_NAMES) + len(CONTROL_AXES)))
+                        usecols=range(1, 2 + len(STATE_NAMES) + len(INPUT_ERROR_AXES)))
+        num_trajectories = cfg["data"].get("n_trajectories", 1) 
     elif isinstance(trajectory_path, np.ndarray):
         data = trajectory_path
+        num_trajectories = len(data) // (int(cfg["data"]["sim_time"] / cfg["dynamics"].get("dt", 0.01)))
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)  # ensure output directory exists
+        
+        
     else:
         raise ValueError("trajectory_path should be a file path or a numpy array.")
         
@@ -208,8 +212,8 @@ def animate(cfg, trajectory_path, out_path=None, plot=False, animate=True) -> st
     margin = 2.0
     xmin, xmax = quad_traj[:, 0].min() - margin, quad_traj[:, 0].max() + margin
     zmin, zmax = quad_traj[:, 1].min() - margin, quad_traj[:, 1].max() + margin
-    # xmin, xmax = -5, 10
-    # zmin, zmax = 0, 10
+    xmin, xmax = -50, 50
+    zmin, zmax = -50, 50
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(zmin, zmax)
 
@@ -305,8 +309,6 @@ def animate(cfg, trajectory_path, out_path=None, plot=False, animate=True) -> st
     
     # Optional plotting of state variables over time
     if plot:
-        num_trajectories = cfg["data"].get("n_trajectories", 1)
-        
         # first plot all trajectories in one figure with subplots
         fig, axs = plt.subplots(3, 1, figsize=(8, 12))
 

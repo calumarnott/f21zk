@@ -19,6 +19,8 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
     model.eval()  # set model to evaluation mode
     dt = float(cfg["dynamics"].get("dt", 0.01))  # simulation time step
     dt_ctrl = float(cfg["dynamics"].get("control_dt", dt)) # controller
+    if initial_states is None:
+        raise ValueError("initial_states must be provided.")
     init_states = np.array(initial_states) # list of initial states
     T = float(cfg["data"]["sim_time"])
     assert init_states.shape[1] == len(cps.STATE_NAMES), f"Initial state shape mismatch. Expected {len(cps.STATE_NAMES)}, got {init_states.shape[1]}"
@@ -51,7 +53,6 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
         for k in range(len(init_states)): # for each init state
             x0 = init_states[k]
             x = x0.copy()
-            x_pid = x0.copy()
             
             for c in controllers.values():
                 c.reset()
@@ -85,7 +86,7 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                     
 
                     ### try calling controllers to test nn controller vs pid behavior
-                    x_pid, u_dict_pid, err_dict_pid = cps.step_simulation(x_pid, t, controllers, params, rk4_step, dt)
+                    # x_pid, u_dict_pid, err_dict_pid = cps.step_simulation(x_pid, t, controllers, params, rk4_step, dt)
                     
 
                 control_steps_counter += 1
@@ -100,40 +101,27 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                         u[j] = u_max
 
                 # Step the dynamics with current control inputs
-                x_new = rk4_step(x, {axis: float(u[j]) for j, axis in enumerate(cps.OUTPUT_CONTROL_AXES)}, cps.f, params, dt)
+                x = rk4_step(x, {axis: float(u[j]) for j, axis in enumerate(cps.OUTPUT_CONTROL_AXES)}, cps.f, params, dt)
+                
                 
 
-                for i, name in enumerate(cps.STATE_NAMES):
+                for l, name in enumerate(cps.STATE_NAMES):
                     if "angle" in name or "theta" in name or "phi" in name:
-                        x_new[i] = wrap_to_pi(x_new[i])
-                
+                        x[l] = wrap_to_pi(x[l])
+
                 t += dt
                     
                 for axis, ctrl in controllers.items():
                     sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
-                    err = control_error(cps, axis, x_new, sp)
+                    err = control_error(cps, axis, x, sp)
                     err_dict[axis] = float(err)
-                    
-                # print("\n")
-                # print(f"\t state_name \t | state_err \t | controller_err \t ")
-                # print("--------------------------------------------------------")
-                # for id, axis in enumerate(cps.STATE_NAMES):
-                #     if axis in cps.OUTPUT_CONTROL_AXES:
-                #         axis_nn = u[cps.OUTPUT_CONTROL_AXES.index(axis)]
-                #         axis_pid = u_dict_pid[axis]
-                #         err = axis_nn - axis_pid
-                #     else:
-                #         err = "N/A"
-                #     nm = axis + " "*9
-                #     print(f"\t {nm[:9]} \t | {x[id] - x_pid[id]:.4f} \t | {err} \t ")
-
-                # input("enter to continue...")
                     
                 if cfg["data"].get("window", {}).get("length", 0) > 0:
                     # copy of tensor
                     x_input_window = x_input
 
-                x_input = np.concatenate([x_new, [err_dict[axis] for axis in cps.INPUT_ERROR_AXES]], axis=0)
+                x_input = np.concatenate([x, [err_dict[axis] for axis in cps.INPUT_ERROR_AXES]], axis=0)
+                
                 x_traj = np.concatenate([[t], x_input], axis=0)
 
                 if cfg["data"].get("window", {}).get("length", 0) > 0:
@@ -142,10 +130,5 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                     x_input = x_input_window
 
                 trajectory[k*num_steps + i] = x_traj  # state + error
-                
-                x = x_new
-                
-    print(f"x_min, x_max: {trajectory[:,1].min()}, {trajectory[:,1].max()}")
-    print(f"z_min, z_max: {trajectory[:,2].min()}, {trajectory[:,2].max()}")
 
     return trajectory

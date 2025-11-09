@@ -19,5 +19,7 @@ dependencies:
   - captum
   - seaborn
   - torchinfo
+  - onnx
   - pip:
       - -e .
+      - requirements.txt

@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 CONTROL_AXES = ["theta"] # Controlled axes. E.g. for a pendulum.
+INPUT_ERROR_AXES = ["theta"] # Axes used as inputs to the controller for error computation.
+OUTPUT_CONTROL_AXES = ["theta"] # Axes for which control inputs are produced.
 STATE_NAMES = ["theta", "theta_dot"] # Names of state variables, in order
 
 @dataclass
@@ -27,7 +29,7 @@ def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
     theta_dot0 = rng.uniform(-1.0, 1.0)   # angular velocity
     return np.array([theta0, theta_dot0], dtype=float)
 
-def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
+def animate(cfg, trajectory_path, out_path=None, plot=False, animate=True) -> str:
     """ Create animation of a trajectory in mp4 format.
 
     Args:
@@ -39,9 +41,6 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
     Returns:
         str: path to the output animation file
     """
-    if plot:
-        raise NotImplementedError("Plotting state variable graphs is not yet implemented for pendulum system.")
-    
     if out_path is None:
         raise ValueError("Missing argument for animate: out_path")
     
@@ -100,12 +99,42 @@ def animate(cfg, trajectory_path, out_path=None, plot=False) -> str:
         return rope_line, payload, time_text, error_text
     
     dt = cfg["dynamics"].get("dt", 0.01)  # default dt if not specified
-    anim = animation.FuncAnimation(fig, update, 
-                                      frames=len(data), 
-                                      init_func=init, 
-                                      interval=dt*1000, blit=True)
-    anim.save(out_path, fps=1./dt, extra_args=['-vcodec', 'libx264'])
+
+
+    if animate:
+        anim = animation.FuncAnimation(fig, update, 
+                                          frames=len(data), 
+                                          init_func=init, 
+                                          interval=dt*1000, blit=True)
+        anim.save(out_path, fps=1./dt, extra_args=['-vcodec', 'libx264'])
     plt.close(fig)
+    
+    
+    
+    if plot:
+        time = data[:, 0]
+        theta = data[:, 1]
+        theta_dot = data[:, 2]
+        
+        fig2, axs = plt.subplots(2, 1, figsize=(8, 6))
+        
+        axs[0].plot(time, theta, label='Theta (rad)')
+        axs[0].set_xlabel('Time (s)')
+        axs[0].set_ylabel('Theta (rad)')
+        axs[0].grid(True)
+        axs[0].legend()
+        
+        axs[1].plot(time, theta_dot, label='Theta dot (rad/s)', color='orange')
+        axs[1].set_xlabel('Time (s)')
+        axs[1].set_ylabel('Theta dot (rad/s)')
+        axs[1].grid(True)
+        axs[1].legend()
+        
+        plot_path = out_path.with_name(out_path.stem + "_states.png")
+        fig2.tight_layout()
+        fig2.savefig(plot_path)
+        plt.close(fig2)
+        
     return str(out_path)
     
     

@@ -1,6 +1,7 @@
 import torch, argparse, json
 from pathlib import Path
 from pendulum_ml.models.registry import make_model
+from pendulum_ml.utils import import_system
 
 
 def load_snapshot(run: str):
@@ -10,13 +11,10 @@ def load_snapshot(run: str):
     return json.loads(snap.read_text())
 
 
-def main():
+if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", required=True)
-    ap.add_argument("--out",  required=True)
-    ap.add_argument("--arch", default="mlp")
-    ap.add_argument("--input-dim", type=int, required=True)   # 2 or 3
-    ap.add_argument("--output-dim", type=int, default=1)
+    ap.add_argument("--out", default="models/onnx/pendulum_model.onnx")
     args = ap.parse_args()
     
     
@@ -25,27 +23,26 @@ def main():
     device = cfg.get("device", "cpu")
     device = torch.device(device)
     
-    kwargs = cfg["model"].get(cfg["model"]["name"], {})
-    model = make_model(args.arch, **kwargs).to(device)
+    model_name = cfg["model"]["name"]
+
+    kwargs = cfg["model"].get(model_name, {})
+    model = make_model(model_name, **kwargs).to(device)
     state = torch.load(args.ckpt, map_location="cpu")
     sd = state.get("model_state_dict", state)
     model.load_state_dict(sd, strict=False)
     model.eval()
 
-    dummy = torch.zeros(1, args.input-dim if hasattr(args,'input-dim') else args.input_dim)
-    # some Python versions don't like hyphenated attribute; fallback:
-    try:
-        inpdim = args.input_dim
-    except:
-        inpdim = getattr(args, "input-dim")
-    dummy = torch.zeros(1, inpdim, dtype=torch.float32)
-
+    dummy = torch.zeros(1, 3, dtype=torch.float32)
+    out_dim = int(cfg["model"].get("out_dim", 1))
+    
+    cps = import_system(cfg["system"])
+    input_names = cps.STATE_NAMES + [f"error_{axis}" for axis in cps.INPUT_ERROR_AXES]
+    output_names = [f"u_{axis}" for axis in cps.OUTPUT_CONTROL_AXES]
+    
     torch.onnx.export(
         model, dummy, args.out,
         input_names=["input"], output_names=["output"],
         opset_version=13
     )
-    print(f"Exported ONNX -> {args.out} (input-dim={inpdim})")
+    print(f"Exported ONNX -> {args.out}")
 
-if __name__ == "__main__":
-    main()

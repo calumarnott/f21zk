@@ -1,0 +1,7 @@
+Implemented PID controllers into the closed-loop reachability
+
+Can only verify up to 0.12s, after which the reachability stops due to set explosion 
+
+options:
+- simplify the system (remove payload and rope dynamics)
+- remove PID and just create bounded input zonotope -- this could be a good option

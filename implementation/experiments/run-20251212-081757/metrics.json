@@ -1,0 +1,12 @@
+{
+  "best_val": 0.7759597424773789,
+  "test_mse": 1.0590198086773959,
+  "test_mae": 0.3722473609762083,
+  "sizes": {
+    "train": 5608,
+    "val": 701,
+    "test": 701
+  },
+  "ckpt": "models/checkpoints/run-20251212-081757.pt",
+  "device": "mps"
+}

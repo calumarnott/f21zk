@@ -72,13 +72,46 @@ def train(cfg):
             X, y = X.to(device), y.to(device)
             
             opt.zero_grad() # reset gradients
-            loss = criterion(model(X), y) # compute loss
+            # loss = criterion(model(X), y) # compute loss
+            preds = model(X)
+            loss = criterion(preds, y)
+            
+            u_min, u_max = -10.0, 10.0
+
+            def saturation_loss(u):
+                """ Penalise outputs outside [u_min, u_max]. """
+                lower = torch.relu(u_min - u)
+                upper = torch.relu(u - u_max)
+                violation = lower + upper  
+                loss = violation.sum()
+                return loss
+
+
+            equilibrium = torch.tensor([4.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0], device=device)
+            eps = 0.0001
+            u_eps = 0.1 # if input-equilibrium < eps, then u < u_eps and if not penalise
+
+            def quiet_near_equilibrium_loss(x, u):
+                """ Penalise control effort near the equilibrium point (0,0). """
+                x_states = x[:, :10]  # assuming first 10 dims are states
+                dist = torch.norm(x_states - equilibrium, dim=1, p=1)
+                mask = (dist < eps).float()
+                loss = (mask * torch.relu(torch.norm(u, dim=1) - u_eps)).sum()
+                return loss
+            
+            # compute additional losses
+            loss += saturation_loss(preds).item()
+            loss += quiet_near_equilibrium_loss(X, preds).item()
+    
+            
             loss.backward() # backpropagate
             opt.step() # update weights
             
             bs = X.size(0) # batch size
             batch_loss = loss.item()
             train_loss += batch_loss * bs
+            
+            
             
             # update progress bar
             pbar.set_postfix({

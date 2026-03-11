@@ -106,7 +106,7 @@ def generate_trajectory_from_NN_controller(cfg, cps, model, initial_states):
                 
 
                 for l, name in enumerate(cps.STATE_NAMES):
-                    if "angle" in name or "theta" in name or "phi" in name:
+                    if ("angle" in name or "theta" in name or "phi" in name) and ("dot" not in name):
                         x[l] = wrap_to_pi(x[l])
 
                 t += dt

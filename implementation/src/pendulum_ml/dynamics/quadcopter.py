@@ -65,10 +65,10 @@ def sample_x0(rng, dyn_cfg: dict) -> np.ndarray:
         else:
             xq = rng.uniform(6.0, 10.0) 
         zq = rng.uniform(3., 7.0)     # vertical position
-        theta = 0.0                     # pitch angle
-        xdot = 0.0                      # horizontal velocity
-        zdot = 0.0                      # vertical velocity
-        thetadot = 0.0                  # pitch angular velocity
+        theta = rng.uniform(-np.pi/2, np.pi/2)                     # pitch angle
+        xdot = rng.uniform(-10.0, 10.0)  # horizontal velocity
+        zdot = rng.uniform(-10.0, 10.0)  # vertical velocity
+        thetadot = rng.uniform(-10.0, 10.0)                # pitch angular velocity
         l = dyn_cfg["params"]["payload"]["rope_length"]  # rope length
         phi = rng.uniform(-np.pi/2, np.pi/2)  # payload swing angle
         ldot = 0.0                      # winch velocity
@@ -212,8 +212,8 @@ def animate(cfg, trajectory_path, out_path=None, plot=False, animate=True) -> st
     margin = 2.0
     xmin, xmax = quad_traj[:, 0].min() - margin, quad_traj[:, 0].max() + margin
     zmin, zmax = quad_traj[:, 1].min() - margin, quad_traj[:, 1].max() + margin
-    xmin, xmax = -50, 50
-    zmin, zmax = -50, 50
+    # xmin, xmax = -50, 50
+    # zmin, zmax = -50, 50
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(zmin, zmax)
 

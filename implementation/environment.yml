@@ -22,4 +22,4 @@ dependencies:
   - onnx
   - pip:
       - -e .
-      - requirements.txt
+      - -r requirements.txt

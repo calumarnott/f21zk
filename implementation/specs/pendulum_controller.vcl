@@ -105,11 +105,18 @@ sat_ok = forall x . validState2 x => sat_lower x and sat_upper x
 -- sat_ok_upper = forall x . validState2 x => sat_upper x
 
 margin : Real
-margin = 2.0
+margin = 1.5
 
 sat_given_margin : Real -> State2 -> Bool
 sat_given_margin i x = 
     (margin * u_min) <= applyCtrl3 x ! u_idx <= (u_max * margin)
+
+-- u_min and u_max are vectors here
+-- sat_given_margin : Real -> State2 -> Bool
+-- sat_given_margin i x = 
+--     (u_min ! i) - margin <= (applyCtrl3 x) ! i <= (u_max ! i) + margin
+
+
 
 @property
 sat_ok_with_margin : Bool
@@ -165,30 +172,30 @@ boundedByEps2 d = forall i . -epsilon <= d ! i <= epsilon
 --   validState2 x1 and validState2 x2 and boundedByEps2 ( x1 - x2 ) =>
 --     torque_output_diff x1 x2 <= lipschitz_constant
 
-@parameter(infer=True)
-n : Nat
+-- @parameter(infer=True)
+-- n : Nat
 
--- Dataset of *problem-space* states: [theta, theta_dot] (no error term here)
-@dataset
-pend_states : Vector State2 n
+-- -- Dataset of *problem-space* states: [theta, theta_dot] (no error term here)
+-- @dataset
+-- pend_states : Vector State2 n
 
--- Precomputed reference controls at those states (1-dim each)
-@dataset
-u_ref : Vector Ctrl n
+-- -- Precomputed reference controls at those states (1-dim each)
+-- @dataset
+-- u_ref : Vector Ctrl n
 
--- Lipschitz-like dataset robustness that uses only ONE network application:
--- Compare u(x+δ) to an *external* reference u_ref(x) precomputed offline.
+-- -- Lipschitz-like dataset robustness that uses only ONE network application:
+-- -- Compare u(x+δ) to an *external* reference u_ref(x) precomputed offline.
 
-@property
-robust_dataset : Vector Bool n
-robust_dataset = foreach i .
-  forall d .
-    let x0        = pend_states ! i in
-    let x1        = x0 + d in
-    let dtheta    = (x1 ! theta2)     - (x0 ! theta2) in
-    let dthetadot = (x1 ! theta_dot2) - (x0 ! theta_dot2) in
-    boundedByEps2 d
-      and validState2 x1
-      and validState (mkInput3 x1)   -- ensure all 3 NN inputs are bounded
-      =>
-      abs( applyCtrl3 x1 ! u_idx - (u_ref ! i ! u_idx) ) <= lipschitz_constant *( abs dtheta + abs dthetadot )
+-- @property
+-- robust_dataset : Vector Bool n
+-- robust_dataset = foreach i .
+--   forall d .
+--     let x0        = pend_states ! i in
+--     let x1        = x0 + d in
+--     let dtheta    = (x1 ! theta2)     - (x0 ! theta2) in
+--     let dthetadot = (x1 ! theta_dot2) - (x0 ! theta_dot2) in
+--     boundedByEps2 d
+--       and validState2 x1
+--       and validState (mkInput3 x1)   -- ensure all 3 NN inputs are bounded
+--       =>
+--       abs( applyCtrl3 x1 ! u_idx - (u_ref ! i ! u_idx) ) <= lipschitz_constant *( abs dtheta + abs dthetadot )

@@ -159,7 +159,23 @@ def simulate(cfg, out_dir="data/raw"):
             
             # if cps has method step_simulation, use it
             if hasattr(cps, "step_simulation"):
-                x_new, u_dict, err_dict = cps.step_simulation(x, t, controllers, params, step, dt)
+                if control_steps_counter % n_ctrl_steps == 0:
+                    # Time to compute new control inputs
+                    x_new, u_dict, err_dict = cps.step_simulation(x, t, controllers, params, step, dt)
+                else:
+                    # Step dynamics with current control inputs
+                    x_new = step(x, u_dict, cps.f, params, dt)
+                    
+                    # wrap angle states if they contain angle names and not dot
+                    for i, name in enumerate(cps.STATE_NAMES):
+                        if ("angle" in name or "theta" in name or "phi" in name) and ("dot" not in name):
+                            x_new[i] = wrap_to_pi(x_new[i])
+                            
+                    for axis, ctrl in controllers.items():
+                        sp = cfg["controller"]["pid"].get(axis, {}).get("setpoint", 0.0)
+                        err = control_error(cps, axis, x, sp)
+                        err_dict[axis] = float(err)
+
             else:
                 
                 if control_steps_counter % n_ctrl_steps == 0:
